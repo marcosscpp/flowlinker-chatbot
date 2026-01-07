@@ -1,0 +1,41 @@
+{
+  "name": "chatbot-agendamento",
+  "version": "1.0.0",
+  "description": "Agente de agendamento multi-vendedor via WhatsApp",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "dev:worker": "tsx watch src/worker.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "start:worker": "node dist/worker.js",
+    "test:calendar": "tsx scripts/test-calendar.ts",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@langchain/community": "^0.3.0",
+    "@langchain/core": "^0.3.0",
+    "@langchain/langgraph": "^0.2.0",
+    "@langchain/openai": "^0.3.0",
+    "@prisma/client": "^5.22.0",
+    "amqplib": "^0.10.0",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.0",
+    "express": "^4.21.0",
+    "googleapis": "^144.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

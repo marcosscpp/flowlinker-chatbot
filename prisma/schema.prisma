@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Seller {
+  id         String    @id @default(uuid())
+  name       String
+  email      String    @unique
+  phone      String?
+  calendarId String    // ID do Google Calendar do vendedor
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  meetings   Meeting[]
+}
+
+model Meeting {
+  id          String   @id @default(uuid())
+  sellerId    String
+  seller      Seller   @relation(fields: [sellerId], references: [id])
+  clientPhone String
+  clientName  String?
+  clientEmail String?
+  subject     String?
+  startTime   DateTime
+  endTime     DateTime
+  eventId     String   // ID do evento no Google Calendar
+  meetLink    String?
+  reminderAt  DateTime?
+  status      MeetingStatus @default(SCHEDULED)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([sellerId])
+  @@index([clientPhone])
+  @@index([clientEmail])
+  @@index([startTime])
+}
+
+model ConversationLog {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  messages  Json     // Historico da conversa para contexto
+  lastContactAt DateTime @default(now()) // Ultimo contato (atualizado pelo app)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([phone])
+  @@index([lastContactAt])
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}

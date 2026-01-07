@@ -1,0 +1,53 @@
+version: "3.8"
+
+# Infraestrutura local para desenvolvimento
+# Para usar: docker-compose up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: chatbot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chatbot
+      POSTGRES_PASSWORD: chatbot123
+      POSTGRES_DB: chatbot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatbot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chatbot-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: chatbot-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: chatbot
+      RABBITMQ_DEFAULT_PASS: chatbot123
+    ports:
+      - "5672:5672" # AMQP
+      - "15672:15672" # Management UI (http://localhost:15672)
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chatbot-network
+
+networks:
+  chatbot-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
