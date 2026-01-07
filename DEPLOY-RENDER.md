@@ -6,10 +6,10 @@ Guia para fazer deploy do chatbot no Render.
 
 O projeto precisa de **2 serviços** no Render:
 
-| Serviço | Tipo | Função |
-|---------|------|--------|
-| `chatbot-server` | Web Service | Recebe webhooks do WhatsApp |
-| `chatbot-worker` | Background Worker | Processa mensagens da fila |
+| Serviço          | Tipo              | Função                      |
+| ---------------- | ----------------- | --------------------------- |
+| `chatbot-server` | Web Service       | Recebe webhooks do WhatsApp |
+| `chatbot-worker` | Background Worker | Processa mensagens da fila  |
 
 ## Pré-requisitos
 
@@ -17,7 +17,7 @@ Antes de começar, você precisa ter:
 
 - [ ] Conta no [Render](https://render.com)
 - [ ] Repositório no GitHub com o código
-- [ ] RabbitMQ rodando (use [CloudAMQP](https://www.cloudamqp.com/) - tem plano grátis)
+- [ ] RabbitMQ rsodando (use [CloudAMQP](https://www.cloudamqp.com/) - tem plano grátis)
 - [ ] PostgreSQL rodando (use Render PostgreSQL ou externo)
 - [ ] Evolution API configurada
 - [ ] Chave da OpenAI
@@ -45,15 +45,15 @@ O arquivo `render.yaml` já está configurado. Basta:
 2. Conecte seu repositório GitHub
 3. Configure:
 
-| Campo | Valor |
-|-------|-------|
-| Name | `chatbot-server` |
-| Region | Oregon (ou mais próximo) |
-| Branch | `main` |
-| Runtime | Node |
+| Campo         | Valor                                                 |
+| ------------- | ----------------------------------------------------- |
+| Name          | `chatbot-server`                                      |
+| Region        | Oregon (ou mais próximo)                              |
+| Branch        | `main`                                                |
+| Runtime       | Node                                                  |
 | Build Command | `npm install && npm run build && npx prisma generate` |
-| Start Command | `npm run start` |
-| Plan | Starter ($7/mês) ou Free (com limitações) |
+| Start Command | `npm run start`                                       |
+| Plan          | Starter ($7/mês) ou Free (com limitações)             |
 
 4. Clique em **Create Web Service**
 
@@ -63,15 +63,15 @@ O arquivo `render.yaml` já está configurado. Basta:
 2. Conecte o mesmo repositório
 3. Configure:
 
-| Campo | Valor |
-|-------|-------|
-| Name | `chatbot-worker` |
-| Region | Oregon (mesmo do server) |
-| Branch | `main` |
-| Runtime | Node |
+| Campo         | Valor                                                 |
+| ------------- | ----------------------------------------------------- |
+| Name          | `chatbot-worker`                                      |
+| Region        | Oregon (mesmo do server)                              |
+| Branch        | `main`                                                |
+| Runtime       | Node                                                  |
 | Build Command | `npm install && npm run build && npx prisma generate` |
-| Start Command | `npm run start:worker` |
-| Plan | Starter ($7/mês) |
+| Start Command | `npm run start:worker`                                |
+| Plan          | Starter ($7/mês)                                      |
 
 4. Clique em **Create Background Worker**
 
@@ -103,13 +103,13 @@ DEBOUNCE_DELAY=3000
 
 ### Onde conseguir cada variável:
 
-| Variável | Onde conseguir |
-|----------|----------------|
-| `OPENAI_API_KEY` | [OpenAI Platform](https://platform.openai.com/api-keys) |
-| `EVOLUTION_*` | Sua instância Evolution API |
-| `DATABASE_URL` | Render PostgreSQL ou seu banco |
-| `RABBITMQ_URL` | [CloudAMQP](https://www.cloudamqp.com/) (grátis) |
-| `GOOGLE_CREDENTIALS_JSON` | Veja seção abaixo |
+| Variável                  | Onde conseguir                                          |
+| ------------------------- | ------------------------------------------------------- |
+| `OPENAI_API_KEY`          | [OpenAI Platform](https://platform.openai.com/api-keys) |
+| `EVOLUTION_*`             | Sua instância Evolution API                             |
+| `DATABASE_URL`            | Render PostgreSQL ou seu banco                          |
+| `RABBITMQ_URL`            | [CloudAMQP](https://www.cloudamqp.com/) (grátis)        |
+| `GOOGLE_CREDENTIALS_JSON` | Veja seção abaixo                                       |
 
 ---
 
@@ -184,6 +184,7 @@ curl https://chatbot-server-xxxx.onrender.com/health
 ```
 
 Resposta esperada:
+
 ```json
 {
   "status": "ok",
@@ -204,13 +205,13 @@ No dashboard do Render, clique no serviço e vá em **Logs** para ver os logs em
 
 ## Custos Estimados
 
-| Serviço | Plano | Custo |
-|---------|-------|-------|
-| Web Service | Starter | $7/mês |
-| Background Worker | Starter | $7/mês |
-| PostgreSQL | Free/Starter | $0-7/mês |
-| CloudAMQP | Little Lemur | $0/mês |
-| **Total** | | **~$14-21/mês** |
+| Serviço           | Plano        | Custo           |
+| ----------------- | ------------ | --------------- |
+| Web Service       | Starter      | $7/mês          |
+| Background Worker | Starter      | $7/mês          |
+| PostgreSQL        | Free/Starter | $0-7/mês        |
+| CloudAMQP         | Little Lemur | $0/mês          |
+| **Total**         |              | **~$14-21/mês** |
 
 > **Nota**: O plano Free do Render "dorme" após 15min de inatividade, o que pode causar delay nos webhooks. Para produção, use o plano Starter.
 
@@ -266,10 +267,12 @@ npm run dev
 # Rodar worker local
 npm run dev:worker
 
+# Converter credentials.json para variável de ambiente
+npm run convert:credentials
+
 # Gerar Prisma
 npx prisma generate
 
 # Push do schema
 npx prisma db push
 ```
-

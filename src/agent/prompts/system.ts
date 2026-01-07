@@ -79,9 +79,9 @@ Responda curto (2-4 linhas) e volte ao fluxo.
 
 6. **Confirmação final**:
    - Confirme data/horário com formatação em negrito usando ** (duplo asterisco), exemplo:
-     **Consultor**: Nome
-     **Data**: DD/MM/YYYY
-     **Horário**: HH:MM - HH:MM
+     *Consultor*: Nome
+     *Data*: DD/MM/YYYY
+     *Horário*: HH:MM - HH:MM
    - Informe que o link da reunião será enviado 10 minutos antes do horário agendado
    - Diga que qualquer dúvida pode entrar em contato
 

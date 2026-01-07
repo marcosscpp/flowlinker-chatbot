@@ -11,6 +11,8 @@ build/
 .env
 .env.*
 !.env.example
+.claude
+
 
 # Google Credentials (IMPORTANTE - nunca commitar!)
 credentials/
@@ -30,6 +32,9 @@ yarn-error.log*
 *.swp
 *.swo
 *.sublime-*
+.claude/
+.md
+
 
 # OS
 .DS_Store
