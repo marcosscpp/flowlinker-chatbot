@@ -91,6 +91,7 @@ EVOLUTION_API_KEY=sua-chave
 EVOLUTION_INSTANCE=sua-instancia
 DATABASE_URL=postgresql://user:pass@host:5432/db
 RABBITMQ_URL=amqps://user:pass@host/vhost
+GOOGLE_CREDENTIALS_JSON={"type":"service_account",...}
 ```
 
 ### Opcionais
@@ -108,6 +109,30 @@ DEBOUNCE_DELAY=3000
 | `EVOLUTION_*` | Sua instância Evolution API |
 | `DATABASE_URL` | Render PostgreSQL ou seu banco |
 | `RABBITMQ_URL` | [CloudAMQP](https://www.cloudamqp.com/) (grátis) |
+| `GOOGLE_CREDENTIALS_JSON` | Veja seção abaixo |
+
+---
+
+## Configurar Google Credentials
+
+O arquivo `credentials.json` não pode ir para o Git. Use variável de ambiente no Render.
+
+### Gerar a string automaticamente:
+
+```bash
+npm run convert:credentials
+```
+
+Isso vai ler `credentials/credentials.json` e mostrar o JSON convertido para uma linha.
+
+### Passos:
+
+1. Execute `npm run convert:credentials` localmente
+2. Copie a string gerada (linha inteira entre os traços)
+3. No Render, adicione a variável `GOOGLE_CREDENTIALS_JSON` com esse valor
+4. Adicione nos **dois serviços** (server e worker)
+
+> **Veja mais detalhes em:** `GOOGLE_CREDENTIALS_RENDER.md`
 
 ---
 
@@ -214,6 +239,18 @@ No dashboard do Render, clique no serviço e vá em **Logs** para ver os logs em
 - Confirme a URL do webhook na Evolution API
 - Verifique se o evento `MESSAGES_UPSERT` está ativado
 - Teste o health check do servidor
+
+### Erro: "Credenciais do Google não encontradas"
+
+- Verifique se `GOOGLE_CREDENTIALS_JSON` está configurado nos **dois serviços**
+- Confirme que o JSON está completo e em uma linha só
+- Execute `npm run convert:credentials` localmente para gerar a string correta
+
+### Erro: "GOOGLE_CREDENTIALS_JSON inválido"
+
+- O JSON pode estar mal formatado
+- Certifique-se de que copiou a string inteira
+- Use o script `npm run convert:credentials` para gerar novamente
 
 ---
 
