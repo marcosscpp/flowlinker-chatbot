@@ -54,4 +54,3 @@ services:
         sync: false
       - key: RABBITMQ_URL
         sync: false
-
