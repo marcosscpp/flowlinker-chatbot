@@ -105,47 +105,7 @@ export async function createCalendarEvent(
   endTime: Date,
   attendees?: Array<{ email: string; displayName?: string }>
 ): Promise<CreatedCalendarEvent> {
-  /*
-   * ========================================================================
-   * GOOGLE MEET / JITSI - DESATIVADO TEMPORARIAMENTE
-   * ========================================================================
-   * Motivo: Usando conta pessoal do Google (Gmail), que não suporta
-   * criação de Google Meet via API em calendários de grupo.
-   *
-   * Para ativar Google Meet:
-   * 1. Adquirir Google Workspace (plano pago ~R$28/mês por usuário)
-   * 2. Configurar Domain-Wide Delegation para a service account
-   * 3. Usar calendário primário do vendedor (email@empresa.com) ao invés
-   *    de calendário de grupo (@group.calendar.google.com)
-   * 4. Descomentar o código abaixo
-   *
-   * Alternativa gratuita (Jitsi Meet):
-   * - Descomentar o código do Jitsi para gerar links automaticamente
-   * ========================================================================
-   */
-
-  // --- CÓDIGO DO GOOGLE MEET (requer Google Workspace) ---
-  // const isGroupCalendar = calendarId.includes("@group.calendar.google.com");
-  // if (!isGroupCalendar) {
-  //   requestBody.conferenceData = {
-  //     createRequest: {
-  //       requestId: `flowlinker-${Date.now()}`,
-  //       conferenceSolutionKey: { type: "hangoutsMeet" },
-  //     },
-  //   };
-  // }
-  // const response = await calendar.events.insert({
-  //   calendarId,
-  //   conferenceDataVersion: 1, // Necessário para Google Meet
-  //   requestBody,
-  // });
-
-  // --- CÓDIGO DO JITSI MEET (alternativa gratuita) ---
-  // const jitsiRoomId = `flowlinker-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-  // const jitsiLink = `https://meet.jit.si/${jitsiRoomId}`;
-  // Adicionar jitsiLink na descrição ou retornar como meetLink
-
-  // Monta o requestBody (sem conferência por enquanto)
+  // Monta o requestBody com Google Meet habilitado
   const requestBody: any = {
     summary,
     description,
@@ -170,10 +130,18 @@ export async function createCalendarEvent(
     },
     visibility: "default",
     status: "confirmed",
+    // Google Meet - gera link automaticamente
+    conferenceData: {
+      createRequest: {
+        requestId: `flowlinker-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+        conferenceSolutionKey: { type: "hangoutsMeet" },
+      },
+    },
   };
 
   const response = await calendar.events.insert({
     calendarId,
+    conferenceDataVersion: 1, // Necessário para criar Google Meet
     requestBody,
   });
 
@@ -181,14 +149,20 @@ export async function createCalendarEvent(
     throw new Error("Falha ao criar evento no calendario");
   }
 
+  // Extrai o link do Google Meet
+  const meetLink = response.data.conferenceData?.entryPoints?.find(
+    (e) => e.entryPointType === "video"
+  )?.uri || null;
+
   console.log("[Calendar] Evento criado:", {
     eventId: response.data.id,
     htmlLink: response.data.htmlLink,
+    meetLink,
   });
 
   return {
     eventId: response.data.id,
-    meetLink: null, // Desativado - ver comentário no início da função
+    meetLink,
   };
 }
 
