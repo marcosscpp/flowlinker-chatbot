@@ -54,7 +54,9 @@ Se o lead aceitar:
    - Se NÃO tem reunião: Siga para o passo 3 (oferecer dias)
 
 3. **OFEREÇA OPÇÕES DE DIAS** (só se NÃO tem reunião existente):
-   - Use list_available_slots para buscar disponibilidade dos próximos 5 dias úteis
+   - Use list_available_slots para buscar disponibilidade
+   - INCLUA O DIA DE HOJE se ainda estiver em horário comercial (antes das 18:30)
+   - Busque hoje + próximos 4 dias úteis (total de 5 opções)
    - NÃO ofereça sábados e domingos (não trabalhamos fins de semana)
    - Horário comercial: 09:00 às 18:30
    - Apresente os dias disponíveis em formato numerado:

@@ -209,14 +209,34 @@ export async function listAvailableSlots(
     return []; // Não agenda em fins de semana
   }
 
+  const now = new Date();
   const dayStart = new Date(date);
   dayStart.setHours(startHour, 0, 0, 0);
+
+  // Se for hoje, começa a partir do horário atual (arredondado para o próximo slot)
+  const isToday = date.toDateString() === now.toDateString();
+  if (isToday && now > dayStart) {
+    // Arredonda para o próximo slot de 30 minutos
+    const minutes = now.getMinutes();
+    const nextSlotMinutes = Math.ceil(minutes / slotDurationMinutes) * slotDurationMinutes;
+    dayStart.setHours(now.getHours(), nextSlotMinutes, 0, 0);
+    
+    // Se o arredondamento passou para a próxima hora
+    if (nextSlotMinutes >= 60) {
+      dayStart.setHours(now.getHours() + 1, 0, 0, 0);
+    }
+  }
 
   const dayEnd = new Date(date);
   // Último slot deve TERMINAR às 19:00, então último início é 18:30
   // endHour=19, endMinute=0 significa que reuniões devem terminar até 19:00
   // Com slots de 30min, último início permitido é 18:30
   dayEnd.setHours(endHour, endMinute, 0, 0);
+  
+  // Se for hoje e já passou do horário comercial, retorna vazio
+  if (isToday && dayStart >= dayEnd) {
+    return [];
+  }
 
   const sellers = await prisma.seller.findMany({
     where: { isActive: true },
