@@ -36,41 +36,39 @@ export const createMeetingTool = tool(
         });
       }
 
-      // ANTI-DUPLICATA: Verifica se já existe reunião para este telefone neste horário
+      // ANTI-DUPLICATA: Verifica se já existe QUALQUER reunião futura para este telefone
       const existingMeeting = await prisma.meeting.findFirst({
         where: {
           clientPhone,
-          startTime: start,
           status: "SCHEDULED",
+          startTime: { gte: new Date() }, // Qualquer reunião futura
         },
         include: { seller: true },
+        orderBy: { startTime: "asc" },
       });
 
       if (existingMeeting) {
-        // Já existe reunião - retorna os dados dela em vez de criar duplicata
-        const formattedDate = start.toLocaleDateString("pt-BR");
-        const formattedStart = start.toLocaleTimeString("pt-BR", {
+        // Já existe reunião - NÃO permite criar outra
+        const existingDate = existingMeeting.startTime.toLocaleDateString("pt-BR");
+        const existingStart = existingMeeting.startTime.toLocaleTimeString("pt-BR", {
           hour: "2-digit",
           minute: "2-digit",
         });
-        const formattedEnd = end.toLocaleTimeString("pt-BR", {
+        const existingEnd = existingMeeting.endTime.toLocaleTimeString("pt-BR", {
           hour: "2-digit",
           minute: "2-digit",
         });
 
         return JSON.stringify({
-          success: true,
-          message:
-            `Reuniao ja estava agendada!\n\n` +
-            `Vendedor: ${existingMeeting.seller.name}\n` +
-            `Data: ${formattedDate}\n` +
-            `Horario: ${formattedStart} - ${formattedEnd}\n` +
-            (existingMeeting.meetLink ? `\nLink da reuniao: ${existingMeeting.meetLink}\n` : ""),
-          meetingId: existingMeeting.id,
-          sellerName: existingMeeting.seller.name,
-          sellerEmail: existingMeeting.seller.email,
-          meetLink: existingMeeting.meetLink,
-          alreadyExisted: true,
+          success: false,
+          error: "Cliente ja possui uma reuniao agendada. Use get_meetings para ver os detalhes e reschedule_meeting para remarcar se necessario.",
+          existingMeeting: {
+            meetingId: existingMeeting.id,
+            sellerName: existingMeeting.seller.name,
+            date: existingDate,
+            time: `${existingStart} - ${existingEnd}`,
+            meetLink: existingMeeting.meetLink,
+          },
         });
       }
 
@@ -159,8 +157,8 @@ export const createMeetingTool = tool(
     name: "create_meeting",
     description:
       "Cria uma nova reuniao com um vendedor disponivel. " +
-      "IMPORTANTE: Sempre verifique a disponibilidade com check_availability antes de criar a reuniao. " +
-      "O sistema selecionara automaticamente um vendedor disponivel.",
+      "IMPORTANTE: NAO permite criar se o cliente ja possui reuniao agendada. " +
+      "Use get_meetings ANTES para verificar. Se ja existir, use reschedule_meeting para remarcar.",
     schema: z.object({
       date: z
         .string()

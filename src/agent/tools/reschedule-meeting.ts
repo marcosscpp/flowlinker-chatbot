@@ -91,7 +91,7 @@ export const rescheduleMeetingTool = tool(
       oldMeetingId: z
         .string()
         .describe(
-          "ID da reuniao antiga (fornecido por get_meetings/get_meetings_by_email)"
+          "ID da reuniao antiga (fornecido por get_meetings)"
         ),
       date: z.string().describe("Nova data no formato YYYY-MM-DD"),
       startTime: z
