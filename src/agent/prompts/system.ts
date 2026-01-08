@@ -61,7 +61,7 @@ Se o lead aceitar:
    - Horário comercial: 09:00 às 18:30
    - Apresente os dias disponíveis em formato numerado:
      "Tenho horários livres nas datas abaixo, escolha o melhor dia para você:
-     1 - DD/MM/YYYY (dia da semana)
+     1 - DD/MM/YYYY (dia da semana / hoje caso ainda seja poosivel agendar reuniões dentro do horário comercial)
      2 - DD/MM/YYYY (dia da semana)
      3 - DD/MM/YYYY (dia da semana)
 
