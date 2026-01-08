@@ -186,7 +186,8 @@ export async function listAvailableSlots(
   date: Date,
   slotDurationMinutes: number = 30,
   startHour: number = 9,
-  endHour: number = 19
+  endHour: number = 19,
+  endMinute: number = 0
 ): Promise<TimeSlot[]> {
   // Verifica se é fim de semana (0 = domingo, 6 = sábado)
   const dayOfWeek = date.getDay();
@@ -198,7 +199,10 @@ export async function listAvailableSlots(
   dayStart.setHours(startHour, 0, 0, 0);
 
   const dayEnd = new Date(date);
-  dayEnd.setHours(endHour, 0, 0, 0);
+  // Último slot deve TERMINAR às 19:00, então último início é 18:30
+  // endHour=19, endMinute=0 significa que reuniões devem terminar até 19:00
+  // Com slots de 30min, último início permitido é 18:30
+  dayEnd.setHours(endHour, endMinute, 0, 0);
 
   const sellers = await prisma.seller.findMany({
     where: { isActive: true },
