@@ -3,15 +3,16 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  // Atualiza o Vendedor A com os dados reais
-  const seller = await prisma.seller.create({
+  // Cria a vendedora Maria (João já foi criado)
+  const maria = await prisma.seller.create({
     data: {
-      name: "Marcos",
-      email: "marcosmodtecnologia@gmail.com",
+      name: "Maria",
+      email: "maria@flowlinker.com",
       calendarId:
-        "d556390375b499e0de707e920f829a784053f5d9abb444c87abb33bb6614ba34@group.calendar.google.com",
+        "c_632ac1e00e748b86f58c395f53db2881da6e0cdd0ae4c91b565fbfcc8a1d22da@group.calendar.google.com",
     },
   });
+  console.log("Vendedor criado:", maria.name);
 
   const sellers = await prisma.seller.findMany();
   console.log("\nVendedores no banco:");
