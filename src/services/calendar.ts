@@ -147,7 +147,9 @@ export async function createCalendarEvent(
     // Google Meet - gera link automaticamente
     conferenceData: {
       createRequest: {
-        requestId: `flowlinker-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+        requestId: `flowlinker-${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2, 8)}`,
         conferenceSolutionKey: { type: "hangoutsMeet" },
       },
     },
@@ -164,9 +166,10 @@ export async function createCalendarEvent(
   }
 
   // Extrai o link do Google Meet
-  const meetLink = response.data.conferenceData?.entryPoints?.find(
-    (e) => e.entryPointType === "video"
-  )?.uri || null;
+  const meetLink =
+    response.data.conferenceData?.entryPoints?.find(
+      (e) => e.entryPointType === "video"
+    )?.uri || null;
 
   console.log("[Calendar] Evento criado:", {
     eventId: response.data.id,
@@ -218,9 +221,10 @@ export async function listAvailableSlots(
   if (isToday && now > dayStart) {
     // Arredonda para o próximo slot de 30 minutos
     const minutes = now.getMinutes();
-    const nextSlotMinutes = Math.ceil(minutes / slotDurationMinutes) * slotDurationMinutes;
+    const nextSlotMinutes =
+      Math.ceil(minutes / slotDurationMinutes) * slotDurationMinutes;
     dayStart.setHours(now.getHours(), nextSlotMinutes, 0, 0);
-    
+
     // Se o arredondamento passou para a próxima hora
     if (nextSlotMinutes >= 60) {
       dayStart.setHours(now.getHours() + 1, 0, 0, 0);
@@ -232,7 +236,7 @@ export async function listAvailableSlots(
   // endHour=19, endMinute=0 significa que reuniões devem terminar até 19:00
   // Com slots de 30min, último início permitido é 18:30
   dayEnd.setHours(endHour, endMinute, 0, 0);
-  
+
   // Se for hoje e já passou do horário comercial, retorna vazio
   if (isToday && dayStart >= dayEnd) {
     return [];
