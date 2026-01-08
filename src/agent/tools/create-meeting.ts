@@ -1,7 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import * as meetingService from "../../services/meeting.js";
-import * as evolutionService from "../../services/evolution.js";
 import { prisma } from "../../database/client.js";
 
 export const createMeetingTool = tool(
@@ -95,29 +94,6 @@ export const createMeetingTool = tool(
           success: false,
           error: result.error,
         });
-      }
-
-      // Notifica imediatamente (cliente recebe via worker; vendedor recebe aqui)
-      // OBS: vendedor precisa ter phone cadastrado no banco para receber WhatsApp.
-      const meetLink = result.meetLink || null;
-      if (meetLink && result.sellerPhone) {
-        const sellerMsg =
-          `✅ Nova reuniao agendada (TESTE)\n\n` +
-          `Cliente: ${clientName || clientPhone}\n` +
-          (clientEmail ? `Email: ${clientEmail}\n` : "") +
-          `Data: ${start.toLocaleDateString("pt-BR")}\n` +
-          `Horario: ${start.toLocaleTimeString("pt-BR", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })} - ` +
-          `${end.toLocaleTimeString("pt-BR", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}\n` +
-          (subject ? `Assunto: ${subject}\n` : "") +
-          `\nLink: ${meetLink}`;
-
-        await evolutionService.sendText(result.sellerPhone, sellerMsg);
       }
 
       const formattedDate = start.toLocaleDateString("pt-BR");
