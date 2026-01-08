@@ -2,6 +2,7 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import * as meetingService from "../../services/meeting.js";
 import * as evolutionService from "../../services/evolution.js";
+import { prisma } from "../../database/client.js";
 
 export const createMeetingTool = tool(
   async ({
@@ -32,6 +33,44 @@ export const createMeetingTool = tool(
           success: false,
           error:
             "O horario solicitado ja passou. Por favor, escolha um horario futuro.",
+        });
+      }
+
+      // ANTI-DUPLICATA: Verifica se já existe reunião para este telefone neste horário
+      const existingMeeting = await prisma.meeting.findFirst({
+        where: {
+          clientPhone,
+          startTime: start,
+          status: "SCHEDULED",
+        },
+        include: { seller: true },
+      });
+
+      if (existingMeeting) {
+        // Já existe reunião - retorna os dados dela em vez de criar duplicata
+        const formattedDate = start.toLocaleDateString("pt-BR");
+        const formattedStart = start.toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const formattedEnd = end.toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        return JSON.stringify({
+          success: true,
+          message:
+            `Reuniao ja estava agendada!\n\n` +
+            `Vendedor: ${existingMeeting.seller.name}\n` +
+            `Data: ${formattedDate}\n` +
+            `Horario: ${formattedStart} - ${formattedEnd}\n` +
+            (existingMeeting.meetLink ? `\nLink da reuniao: ${existingMeeting.meetLink}\n` : ""),
+          meetingId: existingMeeting.id,
+          sellerName: existingMeeting.seller.name,
+          sellerEmail: existingMeeting.seller.email,
+          meetLink: existingMeeting.meetLink,
+          alreadyExisted: true,
         });
       }
 
