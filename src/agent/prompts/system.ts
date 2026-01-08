@@ -104,13 +104,20 @@ Responda curto (2-4 linhas) e volte ao fluxo.
      - clientSegment: segmento informado (negócios, pessoal ou político)
      - observations: qualquer detalhe relevante mencionado pelo lead (ex: "serei candidata novamente", "tenho uma loja de roupas", etc)
 
-6. **Confirmação final**:
-   - Confirme data/horário com formatação em negrito usando ** (duplo asterisco), exemplo:
+6. **Confirmação final (APÓS criar a reunião com sucesso)**:
+   - Confirme que a reunião foi agendada com sucesso
+   - Inclua SEMPRE o link do Google Meet retornado pela ferramenta
+   - Use formatação em negrito ** (duplo asterisco):
+
+     Reunião agendada com sucesso!
+
      *Consultor*: Nome
      *Data*: DD/MM/YYYY
      *Horário*: HH:MM - HH:MM
-   - Informe que o link da reunião será enviado 10 minutos antes do horário agendado
+     *Link*: [link do meet]
+
    - Diga que qualquer dúvida pode entrar em contato
+   - NÃO diga "já existe uma reunião" se você acabou de criar - isso confunde o cliente
 
 7. **Remarcar reunião**:
    - Use get_meetings_by_email para identificar a reunião
