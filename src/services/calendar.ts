@@ -8,6 +8,20 @@ import type {
 
 const TIMEZONE = "America/Sao_Paulo";
 
+/**
+ * Formata uma data para o formato ISO sem indicador UTC (Z)
+ * Isso permite que o Google Calendar use o timeZone especificado corretamente
+ */
+function formatDateTimeForCalendar(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
+
 export interface CreatedCalendarEvent {
   eventId: string;
   meetLink: string | null;
@@ -121,11 +135,11 @@ export async function createCalendarEvent(
     guestsCanInviteOthers: false,
     guestsCanSeeOtherGuests: true,
     start: {
-      dateTime: startTime.toISOString(),
+      dateTime: formatDateTimeForCalendar(startTime),
       timeZone: TIMEZONE,
     },
     end: {
-      dateTime: endTime.toISOString(),
+      dateTime: formatDateTimeForCalendar(endTime),
       timeZone: TIMEZONE,
     },
     visibility: "default",
