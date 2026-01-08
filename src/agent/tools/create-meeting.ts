@@ -36,39 +36,43 @@ export const createMeetingTool = tool(
         });
       }
 
-      // ANTI-DUPLICATA: Verifica se já existe QUALQUER reunião futura para este telefone
+      // ANTI-DUPLICATA: Verifica se já existe reunião para este telefone neste horário
       const existingMeeting = await prisma.meeting.findFirst({
         where: {
           clientPhone,
+          startTime: start,
           status: "SCHEDULED",
-          startTime: { gte: new Date() }, // Qualquer reunião futura
         },
         include: { seller: true },
-        orderBy: { startTime: "asc" },
       });
 
       if (existingMeeting) {
-        // Já existe reunião - NÃO permite criar outra
-        const existingDate = existingMeeting.startTime.toLocaleDateString("pt-BR");
-        const existingStart = existingMeeting.startTime.toLocaleTimeString("pt-BR", {
+        // Já existe reunião - retorna os dados dela em vez de criar duplicata
+        const formattedDate = start.toLocaleDateString("pt-BR");
+        const formattedStart = start.toLocaleTimeString("pt-BR", {
           hour: "2-digit",
           minute: "2-digit",
         });
-        const existingEnd = existingMeeting.endTime.toLocaleTimeString("pt-BR", {
+        const formattedEnd = end.toLocaleTimeString("pt-BR", {
           hour: "2-digit",
           minute: "2-digit",
         });
+        console.log("existingMeeting", existingMeeting);
 
         return JSON.stringify({
-          success: false,
-          error: "Cliente ja possui uma reuniao agendada. Use get_meetings para ver os detalhes e reschedule_meeting para remarcar se necessario.",
-          existingMeeting: {
-            meetingId: existingMeeting.id,
-            sellerName: existingMeeting.seller.name,
-            date: existingDate,
-            time: `${existingStart} - ${existingEnd}`,
-            meetLink: existingMeeting.meetLink,
-          },
+          success: true,
+          message:
+            `Informações da reunião:\n\n` +
+            `Vendedor: ${existingMeeting.seller.name}\n` +
+            `Data: ${formattedDate}\n` +
+            `Horario: ${formattedStart} - ${formattedEnd}\n` +
+            (existingMeeting.meetLink
+              ? `\nLink da reuniao: ${existingMeeting.meetLink}\n`
+              : ""),
+          meetingId: existingMeeting.id,
+          sellerName: existingMeeting.seller.name,
+          sellerEmail: existingMeeting.seller.email,
+          meetLink: existingMeeting.meetLink,
         });
       }
 
@@ -116,7 +120,6 @@ export const createMeetingTool = tool(
         await evolutionService.sendText(result.sellerPhone, sellerMsg);
       }
 
-      // Formata horario para exibicao
       const formattedDate = start.toLocaleDateString("pt-BR");
       const formattedStart = start.toLocaleTimeString("pt-BR", {
         hour: "2-digit",
@@ -157,8 +160,8 @@ export const createMeetingTool = tool(
     name: "create_meeting",
     description:
       "Cria uma nova reuniao com um vendedor disponivel. " +
-      "IMPORTANTE: NAO permite criar se o cliente ja possui reuniao agendada. " +
-      "Use get_meetings ANTES para verificar. Se ja existir, use reschedule_meeting para remarcar.",
+      "IMPORTANTE: Sempre verifique a disponibilidade com check_availability antes de criar a reuniao. " +
+      "O sistema selecionara automaticamente um vendedor disponivel.",
     schema: z.object({
       date: z
         .string()
@@ -210,7 +213,9 @@ export const createMeetingTool = tool(
         .string()
         .nullable()
         .optional()
-        .describe("Observacoes ou detalhes adicionais mencionados pelo cliente durante a conversa"),
+        .describe(
+          "Observacoes ou detalhes adicionais mencionados pelo cliente durante a conversa"
+        ),
     }),
   }
 );
