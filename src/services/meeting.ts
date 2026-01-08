@@ -130,7 +130,9 @@ export async function scheduleMeeting(
     // Monta a localização do cliente
     const localizacao =
       clientCity && clientState
-        ? `${clientCity}/${clientState}${populacaoFormatada ? ` (${populacaoFormatada})` : ""}`
+        ? `${clientCity}/${clientState}${
+            populacaoFormatada ? ` (${populacaoFormatada})` : ""
+          }`
         : null;
 
     // Monta a descrição do evento com todos os dados disponíveis
