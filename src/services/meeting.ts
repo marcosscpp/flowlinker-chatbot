@@ -77,6 +77,47 @@ export async function scheduleMeeting(
       }
     }
 
+    // ANTI-DUPLICATA: Verifica no banco local se já existe reunião para este vendedor neste horário
+    // (o Google Calendar pode ter delay na sincronização)
+    const existingSellerMeeting = await prisma.meeting.findFirst({
+      where: {
+        sellerId: selectedSeller.id,
+        status: "SCHEDULED",
+        OR: [
+          // Reunião existente que começa durante o novo slot
+          {
+            startTime: {
+              gte: startTime,
+              lt: endTime,
+            },
+          },
+          // Reunião existente que termina durante o novo slot
+          {
+            endTime: {
+              gt: startTime,
+              lte: endTime,
+            },
+          },
+          // Reunião existente que engloba o novo slot
+          {
+            startTime: {
+              lte: startTime,
+            },
+            endTime: {
+              gte: endTime,
+            },
+          },
+        ],
+      },
+    });
+
+    if (existingSellerMeeting) {
+      return {
+        success: false,
+        error: `${selectedSeller.name} ja tem uma reuniao neste horario. Por favor, escolha outro horario.`,
+      };
+    }
+
     // Cria evento no calendario
     // Nao pede "titulo" pro cliente; usa um padrao interno
     const summary = `Demo Flowlinker - ${clientName || clientPhone}`;
