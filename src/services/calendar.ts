@@ -186,8 +186,14 @@ export async function listAvailableSlots(
   date: Date,
   slotDurationMinutes: number = 30,
   startHour: number = 9,
-  endHour: number = 18
+  endHour: number = 19
 ): Promise<TimeSlot[]> {
+  // Verifica se é fim de semana (0 = domingo, 6 = sábado)
+  const dayOfWeek = date.getDay();
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    return []; // Não agenda em fins de semana
+  }
+
   const dayStart = new Date(date);
   dayStart.setHours(startHour, 0, 0, 0);
 
