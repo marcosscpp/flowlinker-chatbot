@@ -31,8 +31,8 @@ export const listAvailableDaysTool = tool(
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
 
-      // Se já passou das 18:30, não inclui hoje
-      const todayIsAvailable = currentHour < 18 || (currentHour === 18 && currentMinute < 30);
+      // Se já passou das 18:00, não inclui hoje (última reunião começa às 18:00)
+      const todayIsAvailable = currentHour < 18;
 
       let currentDate = new Date(now);
       currentDate.setHours(0, 0, 0, 0);
