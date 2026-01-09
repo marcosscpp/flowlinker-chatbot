@@ -18,7 +18,7 @@ import {
 
 // Configura o modelo
 const model = new ChatOpenAI({
-  modelName: "gpt-4o-mini",
+  modelName: "gpt-4o",
   temperature: 0.3,
   apiKey: env.openaiApiKey,
 });
