@@ -23,6 +23,11 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
   try {
     const payload = req.body as EvolutionWebhookPayload;
 
+    // Log COMPLETO do payload para debug
+    console.log("[Webhook] ========== PAYLOAD COMPLETO ==========");
+    console.log(JSON.stringify(payload, null, 2));
+    console.log("[Webhook] ======================================");
+
     // Valida payload
     if (!payload?.data?.key) {
       console.log("[Webhook] Payload inválido recebido");
@@ -30,14 +35,6 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
     }
 
     const { key, message, pushName, messageType } = payload.data;
-
-    // Log do payload para debug
-    console.log("[Webhook] Payload recebido:", JSON.stringify({
-      messageType,
-      hasBase64: !!message?.base64,
-      hasAudioMessage: !!message?.audioMessage,
-      mimetype: message?.audioMessage?.mimetype,
-    }, null, 2));
 
     // Extrai texto para verificar comandos admin
     const rawText = extractMessageText(message)?.trim();
