@@ -3,12 +3,43 @@
  *
  * Pode rodar em paralelo com o servidor principal para escalar horizontalmente.
  * Execute: npm run worker
+ * 
+ * Comandos especiais:
+ * - "." → Desabilita o bot para esta conversa
+ * - ".." → Reabilita o bot para esta conversa
  */
 
 import 'dotenv/config';
 import * as queueService from './services/queue.js';
 import * as evolutionService from './services/evolution.js';
 import { processMessage } from './agent/index.js';
+import { prisma } from './database/client.js';
+
+/**
+ * Verifica se o bot está desabilitado para este telefone
+ */
+async function isBotDisabled(phone: string): Promise<boolean> {
+  const conversation = await prisma.conversationLog.findUnique({
+    where: { phone },
+    select: { disabled: true },
+  });
+  return conversation?.disabled ?? false;
+}
+
+/**
+ * Atualiza o estado disabled do bot para este telefone
+ */
+async function setBotDisabled(phone: string, disabled: boolean): Promise<void> {
+  await prisma.conversationLog.upsert({
+    where: { phone },
+    update: { disabled },
+    create: { 
+      phone, 
+      disabled,
+      messages: [],
+    },
+  });
+}
 
 async function handleMessage(data: {
   phone: string;
@@ -18,8 +49,32 @@ async function handleMessage(data: {
   timestamp: number;
 }): Promise<void> {
   const { phone, text, name } = data;
+  const trimmedText = text.trim();
 
-  console.log(`[Worker] Processando mensagem de ${phone}`);
+  console.log(`[Worker] Processando mensagem de ${phone}: "${trimmedText.substring(0, 30)}..."`);
+
+  // Comando "." → Desabilita o bot
+  if (trimmedText === ".") {
+    await setBotDisabled(phone, true);
+    console.log(`[Worker] Bot DESABILITADO para ${phone}`);
+    return; // Não responde nada, só desabilita
+  }
+
+  // Comando ".." → Reabilita o bot
+  if (trimmedText === "..") {
+    await setBotDisabled(phone, false);
+    console.log(`[Worker] Bot REABILITADO para ${phone}`);
+    // Não responde nada, só reabilita
+    return;
+  }
+
+  // Verifica se o bot está desabilitado para este telefone
+  const disabled = await isBotDisabled(phone);
+  if (disabled) {
+    console.log(`[Worker] Bot desabilitado para ${phone}, ignorando mensagem`);
+    return; // Não processa nem responde
+  }
+
   const startTime = Date.now();
 
   try {

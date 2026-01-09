@@ -46,6 +46,7 @@ model ConversationLog {
   id        String   @id @default(uuid())
   phone     String   @unique
   messages  Json     // Historico da conversa para contexto
+  disabled  Boolean  @default(false) // Se true, bot não responde esta conversa
   lastContactAt DateTime @default(now()) // Ultimo contato (atualizado pelo app)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
