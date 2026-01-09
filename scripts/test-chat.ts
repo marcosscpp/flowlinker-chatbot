@@ -8,8 +8,8 @@
 import * as readline from "readline";
 import { processMessageDebug, clearHistory } from "../src/agent/index.js";
 
-const TEST_PHONE = "5511999999999";
-const TEST_NAME = "Cliente Teste";
+const TEST_PHONE = "5511999999993";
+const TEST_NAME = "Cliente Teste 3";
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -67,7 +67,9 @@ async function chat(userMessage: string): Promise<void> {
 
     // Mostra tools chamadas
     if (toolCalls.length > 0) {
-      console.log("┌─ TOOLS CHAMADAS ──────────────────────────────────────────┐");
+      console.log(
+        "┌─ TOOLS CHAMADAS ──────────────────────────────────────────┐"
+      );
       for (const tool of toolCalls) {
         console.log(`│ 🔧 ${tool.name}`);
         const argsStr = JSON.stringify(tool.args, null, 2)
@@ -76,12 +78,16 @@ async function chat(userMessage: string): Promise<void> {
           .join("\n");
         console.log(argsStr);
       }
-      console.log("└────────────────────────────────────────────────────────────┘");
+      console.log(
+        "└────────────────────────────────────────────────────────────┘"
+      );
       console.log("");
     }
 
     // Mostra resposta
-    console.log("┌─ BOT ─────────────────────────────────────────────────────┐");
+    console.log(
+      "┌─ BOT ─────────────────────────────────────────────────────┐"
+    );
     console.log("");
     console.log(response);
     console.log("");

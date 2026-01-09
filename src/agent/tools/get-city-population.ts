@@ -1,6 +1,18 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 
+/**
+ * Remove acentos de uma string para comparacao flexivel
+ * "Niterói" -> "niteroi", "São Paulo" -> "sao paulo"
+ */
+function normalizeString(str: string): string {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 interface IBGEMunicipio {
   id: number;
   nome: string;
@@ -23,7 +35,7 @@ interface SIDRAPopulacao {
 export const getCityPopulationTool = tool(
   async ({ city, state }) => {
     try {
-      const cityNormalized = city.trim().toLowerCase();
+      const cityNormalized = normalizeString(city);
       const stateNormalized = state.trim().toUpperCase();
 
       // 1. Busca o município na API de localidades do IBGE
@@ -39,15 +51,15 @@ export const getCityPopulationTool = tool(
 
       const municipios: IBGEMunicipio[] = await localidadesRes.json();
 
-      // Encontra o município pelo nome (busca flexível)
+      // Encontra o município pelo nome (busca flexível, ignora acentos)
       const municipio = municipios.find(
-        (m) => m.nome.toLowerCase() === cityNormalized
+        (m) => normalizeString(m.nome) === cityNormalized
       );
 
       if (!municipio) {
-        // Tenta busca parcial
+        // Tenta busca parcial (também sem acentos)
         const municipioParcial = municipios.find((m) =>
-          m.nome.toLowerCase().includes(cityNormalized)
+          normalizeString(m.nome).includes(cityNormalized)
         );
 
         if (!municipioParcial) {
