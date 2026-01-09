@@ -90,14 +90,31 @@ export async function checkAvailability(
   }
 
   // Log dos vendedores disponíveis e ocupados
-  console.log(`\n[Disponibilidade] Horário: ${startTime.toLocaleString("pt-BR")} - ${endTime.toLocaleString("pt-BR")}`);
-  console.log(`[Disponibilidade] Vendedores LIVRES (${availableSellers.length}):`);
+  console.log(
+    `\n[Disponibilidade] Horário: ${startTime.toLocaleString(
+      "pt-BR"
+    )} - ${endTime.toLocaleString("pt-BR")}`
+  );
+  console.log(
+    `[Disponibilidade] Vendedores LIVRES (${availableSellers.length}):`
+  );
   availableSellers.forEach((s) => console.log(`  ✅ ${s.sellerName}`));
-  console.log(`[Disponibilidade] Vendedores OCUPADOS (${unavailableSellers.length}):`);
+  console.log(
+    `[Disponibilidade] Vendedores OCUPADOS (${unavailableSellers.length}):`
+  );
   unavailableSellers.forEach((s) => {
-    const busyInfo = s.busySlots.map((slot) => 
-      `${slot.start.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} - ${slot.end.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
-    ).join(", ");
+    const busyInfo = s.busySlots
+      .map(
+        (slot) =>
+          `${slot.start.toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })} - ${slot.end.toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}`
+      )
+      .join(", ");
     console.log(`  ❌ ${s.sellerName} (ocupado: ${busyInfo})`);
   });
 
