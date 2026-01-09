@@ -36,28 +36,36 @@ export const listAvailableSlotsTool = tool(
         });
       }
 
-      // Formata os slots para exibicao
+      // Formata os slots para exibicao (usando timezone de Brasília)
       const formattedSlots = slots.map((slot) => {
         const start = slot.start.toLocaleTimeString("pt-BR", {
           hour: "2-digit",
           minute: "2-digit",
+          timeZone: "America/Sao_Paulo",
         });
         const end = slot.end.toLocaleTimeString("pt-BR", {
           hour: "2-digit",
           minute: "2-digit",
+          timeZone: "America/Sao_Paulo",
         });
         return `${start} - ${end}`;
       });
 
       console.log("formattedSlots", formattedSlots);
 
-      return JSON.stringify({
+      const result = {
         success: true,
         available: true,
         message: `Horarios disponiveis em ${date}:`,
         slots: formattedSlots,
         totalSlots: slots.length,
-      });
+      };
+
+      console.log("\n[list_available_slots] RETORNO PARA LLM:");
+      console.log(JSON.stringify(result, null, 2));
+      console.log("");
+
+      return JSON.stringify(result);
     } catch (error: any) {
       return JSON.stringify({
         success: false,

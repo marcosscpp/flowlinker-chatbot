@@ -8,8 +8,12 @@
 import * as readline from "readline";
 import { processMessageDebug, clearHistory } from "../src/agent/index.js";
 
-const TEST_PHONE = "5511999999991";
-const TEST_NAME = "Cliente Teste 1";
+const TEST_PHONE = "5511999999995";
+const TEST_NAME = "Cliente Teste";
+
+// Respostas automáticas para pular a qualificação e ir direto pro agendamento
+const AUTO_RESPONSES = ["oi", "São Paulo", "negocios", "sim"];
+let autoIndex = 0;
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -108,8 +112,32 @@ function prompt(): void {
   });
 }
 
+// Função para executar respostas automáticas
+async function runAutoResponses(): Promise<void> {
+  console.log(
+    "🤖 Executando respostas automáticas para pular qualificação...\n"
+  );
+
+  for (const response of AUTO_RESPONSES) {
+    console.log(`Você: ${response}`);
+    await chat(response);
+    // Pequeno delay entre mensagens
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  console.log(
+    "\n✅ Qualificação concluída! Agora você pode testar o agendamento.\n"
+  );
+  console.log("─".repeat(60));
+}
+
 // Limpa histórico ao iniciar para começar do zero
-clearHistory(TEST_PHONE).then(() => {
+clearHistory(TEST_PHONE).then(async () => {
   console.log("🔄 Histórico limpo para novo teste\n");
+
+  // Executa respostas automáticas primeiro
+  await runAutoResponses();
+
+  // Depois começa o prompt manual
   prompt();
 });

@@ -61,17 +61,17 @@ export function getBrasiliaComponents(date: Date): {
     minute: "2-digit",
     hour12: false,
   });
-  
+
   // Formato: "2026-01-09, 15:00"
   const [datePart, timePart] = brasiliaStr.split(", ");
   const [year, month, day] = datePart.split("-").map(Number);
   const [hours, minutes] = timePart.split(":").map(Number);
-  
+
   // Calcula o dia da semana no timezone de Brasília
   const dayOfWeek = new Date(
     date.toLocaleString("en-US", { timeZone: TIMEZONE })
   ).getDay();
-  
+
   return { year, month, day, hours, minutes, dayOfWeek };
 }
 
@@ -81,7 +81,10 @@ export function getBrasiliaComponents(date: Date): {
  */
 function formatDateTimeForCalendar(date: Date): string {
   const { year, month, day, hours, minutes } = getBrasiliaComponents(date);
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(
+    2,
+    "0"
+  )}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
 }
 
 export interface CreatedCalendarEvent {
@@ -336,12 +339,23 @@ export async function listAvailableSlots(
   endHour: number = 18,
   endMinute: number = 30
 ): Promise<TimeSlot[]> {
+  console.log("\n[listAvailableSlots] === INICIO ===");
+  console.log("[listAvailableSlots] date recebida:", date.toISOString());
+
   // Extrai componentes da data no horário de Brasília
   const dateComponents = getBrasiliaComponents(date);
   const { year, month, day, dayOfWeek } = dateComponents;
-  
+
+  console.log("[listAvailableSlots] Componentes Brasília:", {
+    year,
+    month,
+    day,
+    dayOfWeek,
+  });
+
   // Verifica se é fim de semana (0 = domingo, 6 = sábado)
   if (dayOfWeek === 0 || dayOfWeek === 6) {
+    console.log("[listAvailableSlots] É fim de semana, retornando vazio");
     return []; // Não agenda em fins de semana
   }
 
@@ -349,30 +363,48 @@ export async function listAvailableSlots(
   let dayStart = createBrasiliaDate(year, month, day, startHour, 0);
   const dayEnd = createBrasiliaDate(year, month, day, endHour, endMinute);
 
+  console.log(
+    "[listAvailableSlots] dayStart (Brasília):",
+    `${startHour}:00 -> UTC:`,
+    dayStart.toISOString()
+  );
+  console.log(
+    "[listAvailableSlots] dayEnd (Brasília):",
+    `${endHour}:${endMinute} -> UTC:`,
+    dayEnd.toISOString()
+  );
+
   // Verifica se é hoje (no horário de Brasília)
   const now = new Date();
   const nowComponents = getBrasiliaComponents(now);
-  const isToday = 
-    nowComponents.year === year && 
-    nowComponents.month === month && 
+  const isToday =
+    nowComponents.year === year &&
+    nowComponents.month === month &&
     nowComponents.day === day;
 
   // Se for hoje, começa a partir do horário atual (arredondado para o próximo slot)
   if (isToday && now > dayStart) {
     // Arredonda para o próximo slot de 30 minutos
     const nextSlotMinutes =
-      Math.ceil(nowComponents.minutes / slotDurationMinutes) * slotDurationMinutes;
-    
+      Math.ceil(nowComponents.minutes / slotDurationMinutes) *
+      slotDurationMinutes;
+
     let adjustedHour = nowComponents.hours;
     let adjustedMinutes = nextSlotMinutes;
-    
+
     // Se o arredondamento passou para a próxima hora
     if (nextSlotMinutes >= 60) {
       adjustedHour += 1;
       adjustedMinutes = 0;
     }
-    
-    dayStart = createBrasiliaDate(year, month, day, adjustedHour, adjustedMinutes);
+
+    dayStart = createBrasiliaDate(
+      year,
+      month,
+      day,
+      adjustedHour,
+      adjustedMinutes
+    );
   }
 
   // Se for hoje e já passou do horário comercial, retorna vazio
@@ -384,9 +416,18 @@ export async function listAvailableSlots(
     where: { isActive: true },
   });
 
+  console.log(
+    "[listAvailableSlots] Vendedores ativos:",
+    sellers.map((s) => s.name).join(", ")
+  );
+
   if (sellers.length === 0) return [];
 
   // Busca ocupacao do dia inteiro
+  console.log("[listAvailableSlots] Consultando Google Calendar FreeBusy...");
+  console.log("[listAvailableSlots] timeMin:", dayStart.toISOString());
+  console.log("[listAvailableSlots] timeMax:", dayEnd.toISOString());
+
   const response = await calendar.freebusy.query({
     requestBody: {
       timeMin: dayStart.toISOString(),
@@ -397,6 +438,31 @@ export async function listAvailableSlots(
   });
 
   const calendarsData = response.data.calendars || {};
+
+  // Log da ocupação de cada vendedor
+  console.log("[listAvailableSlots] Ocupação por vendedor:");
+  for (const seller of sellers) {
+    const busy = calendarsData[seller.calendarId]?.busy || [];
+    if (busy.length > 0) {
+      const busyStr = busy
+        .map(
+          (b) =>
+            `${new Date(b.start!).toLocaleTimeString("pt-BR", {
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: TIMEZONE,
+            })} - ${new Date(b.end!).toLocaleTimeString("pt-BR", {
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: TIMEZONE,
+            })}`
+        )
+        .join(", ");
+      console.log(`  ${seller.name}: OCUPADO em ${busyStr}`);
+    } else {
+      console.log(`  ${seller.name}: LIVRE o dia todo`);
+    }
+  }
 
   // Gera todos os slots do dia
   const availableSlots: TimeSlot[] = [];
@@ -428,6 +494,11 @@ export async function listAvailableSlots(
 
     currentSlotStart = new Date(currentSlotEnd);
   }
+
+  console.log(
+    `[listAvailableSlots] Total de slots disponíveis: ${availableSlots.length}`
+  );
+  console.log("[listAvailableSlots] === FIM ===\n");
 
   return availableSlots;
 }
