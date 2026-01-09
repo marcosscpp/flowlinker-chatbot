@@ -143,7 +143,9 @@ export function getAudioInfo(message: any): {
  * Usa o endpoint /chat/getBase64FromMediaMessage
  */
 export async function getBase64FromMediaMessage(
-  messageId: string
+  messageId: string,
+  remoteJid: string,
+  fromMe: boolean = false
 ): Promise<{ base64: string; mimetype: string } | null> {
   try {
     console.log(`[Evolution] Buscando base64 para mensagem ${messageId}...`);
@@ -153,6 +155,8 @@ export async function getBase64FromMediaMessage(
       {
         message: {
           key: {
+            remoteJid,
+            fromMe,
             id: messageId,
           },
         },
@@ -170,9 +174,13 @@ export async function getBase64FromMediaMessage(
       };
     }
 
+    console.log("[Evolution] Resposta sem base64:", JSON.stringify(response.data));
     return null;
   } catch (error: any) {
     console.error("[Evolution] Erro ao buscar base64:", error.message);
+    if (error.response?.data) {
+      console.error("[Evolution] Detalhes:", JSON.stringify(error.response.data));
+    }
     return null;
   }
 }

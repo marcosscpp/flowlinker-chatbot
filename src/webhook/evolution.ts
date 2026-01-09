@@ -79,7 +79,7 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
       // Tenta pegar base64 direto do webhook, senão busca via API
       let base64 = message?.base64;
       if (!base64) {
-        const mediaData = await getBase64FromMediaMessage(key.id);
+        const mediaData = await getBase64FromMediaMessage(key.id, key.remoteJid, key.fromMe);
         base64 = mediaData?.base64;
       }
 
