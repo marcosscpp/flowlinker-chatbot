@@ -97,15 +97,54 @@ export async function checkAvailability(
 }
 
 /**
- * Seleciona um vendedor disponivel (aleatorio entre os disponiveis)
+ * Seleciona um vendedor disponivel usando round-robin
+ * Escolhe o vendedor com MENOS reuniões futuras agendadas
  */
-export function selectAvailableSeller(
+export async function selectAvailableSeller(
   availableSellers: SellerAvailability[]
-): SellerAvailability | null {
+): Promise<SellerAvailability | null> {
   if (availableSellers.length === 0) return null;
 
-  const randomIndex = Math.floor(Math.random() * availableSellers.length);
-  return availableSellers[randomIndex];
+  // Se só tem 1 vendedor, retorna ele
+  if (availableSellers.length === 1) return availableSellers[0];
+
+  // Busca contagem de reuniões futuras para cada vendedor disponível
+  const now = new Date();
+  const sellerIds = availableSellers.map((s) => s.sellerId);
+
+  const meetingCounts = await prisma.meeting.groupBy({
+    by: ["sellerId"],
+    where: {
+      sellerId: { in: sellerIds },
+      status: "SCHEDULED",
+      startTime: { gte: now },
+    },
+    _count: { sellerId: true },
+  });
+
+  // Cria mapa de contagem (vendedor -> quantidade de reuniões)
+  const countMap = new Map<string, number>();
+  for (const mc of meetingCounts) {
+    countMap.set(mc.sellerId, mc._count.sellerId);
+  }
+
+  // Encontra o vendedor com menos reuniões
+  let minCount = Infinity;
+  let selectedSeller: SellerAvailability | null = null;
+
+  for (const seller of availableSellers) {
+    const count = countMap.get(seller.sellerId) || 0;
+    if (count < minCount) {
+      minCount = count;
+      selectedSeller = seller;
+    }
+  }
+
+  console.log(
+    `[Round-Robin] Vendedor selecionado: ${selectedSeller?.sellerName} (${minCount} reuniões futuras)`
+  );
+
+  return selectedSeller;
 }
 
 /**

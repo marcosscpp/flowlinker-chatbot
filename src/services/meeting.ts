@@ -64,7 +64,7 @@ export async function scheduleMeeting(
         };
       }
 
-      const selected = calendarService.selectAvailableSeller(
+      const selected = await calendarService.selectAvailableSeller(
         availability.availableSellers
       );
       if (!selected) {

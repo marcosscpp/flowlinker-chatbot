@@ -28,7 +28,7 @@ export const checkAvailabilityTool = tool(
         return JSON.stringify({
           success: true,
           available: false,
-          message: `Nenhum vendedor disponivel em ${date} as ${startTime} (duracao 30min).`,
+          message: `Nenhum consultor disponivel em ${date} as ${startTime} (duracao 30min).`,
         });
       }
 

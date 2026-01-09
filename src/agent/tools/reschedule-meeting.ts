@@ -34,7 +34,7 @@ export const rescheduleMeetingTool = tool(
       if (newMeeting.success && newMeeting.meetLink && newMeeting.sellerPhone) {
         const end = new Date(start.getTime() + 30 * 60 * 1000);
         const sellerMsg =
-          `🔁 Reuniao remarcada (TESTE)\n\n` +
+          `🔁 Reuniao remarcada\n\n` +
           `Data: ${start.toLocaleDateString("pt-BR")}\n` +
           `Horario: ${start.toLocaleTimeString("pt-BR", {
             hour: "2-digit",
@@ -90,9 +90,7 @@ export const rescheduleMeetingTool = tool(
     schema: z.object({
       oldMeetingId: z
         .string()
-        .describe(
-          "ID da reuniao antiga (fornecido por get_meetings)"
-        ),
+        .describe("ID da reuniao antiga (fornecido por get_meetings)"),
       date: z.string().describe("Nova data no formato YYYY-MM-DD"),
       startTime: z
         .string()
