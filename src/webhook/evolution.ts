@@ -23,9 +23,6 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
   try {
     const payload = req.body as EvolutionWebhookPayload;
 
-    // Log COMPLETO do payload para debug
-    console.log("[Webhook] PAYLOAD:", JSON.stringify(payload));
-
     // Valida payload
     if (!payload?.data?.key) {
       console.log("[Webhook] Payload inválido recebido");
@@ -79,14 +76,9 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
         `[Webhook] Áudio recebido de ${phone} (${audioInfo?.seconds}s, ${mimetype})`
       );
 
-      // Tenta pegar base64 direto do webhook (se webhook_base64 estiver habilitado)
+      // Tenta pegar base64 direto do webhook, senão busca via API
       let base64 = message?.base64;
-
-      // Se não veio no webhook, busca via API
       if (!base64) {
-        console.log(
-          "[Webhook] Base64 não veio no webhook, buscando via API..."
-        );
         const mediaData = await getBase64FromMediaMessage(key.id);
         base64 = mediaData?.base64;
       }

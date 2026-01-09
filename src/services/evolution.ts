@@ -160,9 +160,6 @@ export async function getBase64FromMediaMessage(
       }
     );
 
-    // Log completo do retorno da Evolution API
-    console.log("[Evolution] Resposta completa:", JSON.stringify(response.data, null, 2));
-
     if (response.data?.base64) {
       console.log(
         `[Evolution] Base64 obtido com sucesso (${response.data.mimetype})`
@@ -173,7 +170,6 @@ export async function getBase64FromMediaMessage(
       };
     }
 
-    console.log("[Evolution] Resposta sem base64");
     return null;
   } catch (error: any) {
     console.error("[Evolution] Erro ao buscar base64:", error.message);
