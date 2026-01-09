@@ -24,9 +24,7 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
     const payload = req.body as EvolutionWebhookPayload;
 
     // Log COMPLETO do payload para debug
-    console.log("[Webhook] ========== PAYLOAD COMPLETO ==========");
-    console.log(JSON.stringify(payload, null, 2));
-    console.log("[Webhook] ======================================");
+    console.log("[Webhook] PAYLOAD:", JSON.stringify(payload));
 
     // Valida payload
     if (!payload?.data?.key) {
@@ -44,7 +42,9 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
       // Permite apenas comandos de controle do bot (. e ..)
       if (rawText === "." || rawText === "..") {
         const phone = extractPhoneFromJid(key.remoteJid);
-        console.log(`[Webhook] Comando admin "${rawText}" para conversa ${phone}`);
+        console.log(
+          `[Webhook] Comando admin "${rawText}" para conversa ${phone}`
+        );
 
         debounceService.addMessage({
           phone,
@@ -84,7 +84,9 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
 
       // Se não veio no webhook, busca via API
       if (!base64) {
-        console.log("[Webhook] Base64 não veio no webhook, buscando via API...");
+        console.log(
+          "[Webhook] Base64 não veio no webhook, buscando via API..."
+        );
         const mediaData = await getBase64FromMediaMessage(key.id);
         base64 = mediaData?.base64;
       }
@@ -96,7 +98,10 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
         if (transcription) {
           text = transcription;
           console.log(
-            `[Webhook] Áudio transcrito de ${phone}: "${text.substring(0, 50)}..."`
+            `[Webhook] Áudio transcrito de ${phone}: "${text.substring(
+              0,
+              50
+            )}..."`
           );
         } else {
           console.log("[Webhook] Falha ao transcrever áudio, ignorando");
