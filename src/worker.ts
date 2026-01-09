@@ -3,17 +3,17 @@
  *
  * Pode rodar em paralelo com o servidor principal para escalar horizontalmente.
  * Execute: npm run worker
- * 
+ *
  * Comandos especiais:
  * - "." → Desabilita o bot para esta conversa
  * - ".." → Reabilita o bot para esta conversa
  */
 
-import 'dotenv/config';
-import * as queueService from './services/queue.js';
-import * as evolutionService from './services/evolution.js';
-import { processMessage } from './agent/index.js';
-import { prisma } from './database/client.js';
+import "dotenv/config";
+import * as queueService from "./services/queue.js";
+import * as evolutionService from "./services/evolution.js";
+import { processMessage } from "./agent/index.js";
+import { prisma } from "./database/client.js";
 
 /**
  * Verifica se o bot está desabilitado para este telefone
@@ -33,8 +33,8 @@ async function setBotDisabled(phone: string, disabled: boolean): Promise<void> {
   await prisma.conversationLog.upsert({
     where: { phone },
     update: { disabled },
-    create: { 
-      phone, 
+    create: {
+      phone,
       disabled,
       messages: [],
     },
@@ -51,7 +51,12 @@ async function handleMessage(data: {
   const { phone, text, name } = data;
   const trimmedText = text.trim();
 
-  console.log(`[Worker] Processando mensagem de ${phone}: "${trimmedText.substring(0, 30)}..."`);
+  console.log(
+    `[Worker] Processando mensagem de ${phone}: "${trimmedText.substring(
+      0,
+      30
+    )}..."`
+  );
 
   // Comando "." → Desabilita o bot
   if (trimmedText === ".") {
@@ -93,7 +98,7 @@ async function handleMessage(data: {
 }
 
 async function start(): Promise<void> {
-  console.log('[Worker] Iniciando...');
+  console.log("[Worker] Iniciando...");
 
   // Conecta ao RabbitMQ
   await queueService.connect();
@@ -101,23 +106,23 @@ async function start(): Promise<void> {
   // Inicia o consumidor
   await queueService.consumeMessages(handleMessage);
 
-  console.log('[Worker] Aguardando mensagens...');
+  console.log("[Worker] Aguardando mensagens...");
 
   // Graceful shutdown
-  process.on('SIGINT', async () => {
-    console.log('\n[Worker] Encerrando...');
+  process.on("SIGINT", async () => {
+    console.log("\n[Worker] Encerrando...");
     await queueService.disconnect();
     process.exit(0);
   });
 
-  process.on('SIGTERM', async () => {
-    console.log('\n[Worker] Encerrando...');
+  process.on("SIGTERM", async () => {
+    console.log("\n[Worker] Encerrando...");
     await queueService.disconnect();
     process.exit(0);
   });
 }
 
 start().catch((error) => {
-  console.error('[Worker] Erro fatal:', error);
+  console.error("[Worker] Erro fatal:", error);
   process.exit(1);
 });

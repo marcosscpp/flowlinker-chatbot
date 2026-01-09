@@ -143,8 +143,7 @@ export function getAudioInfo(message: any): {
  * Usa o endpoint /chat/getBase64FromMediaMessage
  */
 export async function getBase64FromMediaMessage(
-  messageId: string,
-  remoteJid: string
+  messageId: string
 ): Promise<{ base64: string; mimetype: string } | null> {
   try {
     console.log(`[Evolution] Buscando base64 para mensagem ${messageId}...`);
@@ -154,10 +153,10 @@ export async function getBase64FromMediaMessage(
       {
         message: {
           key: {
-            remoteJid,
             id: messageId,
           },
         },
+        convertToMp4: false,
       }
     );
 

@@ -31,8 +31,24 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
 
     const { key, message, pushName } = payload.data;
 
-    // Ignora mensagens enviadas pelo bot
+    // Extrai texto para verificar comandos admin
+    const rawText = extractMessageText(message)?.trim();
+
+    // Mensagens enviadas pelo admin (fromMe)
     if (key.fromMe) {
+      // Permite apenas comandos de controle do bot (. e ..)
+      if (rawText === "." || rawText === "..") {
+        const phone = extractPhoneFromJid(key.remoteJid);
+        console.log(`[Webhook] Comando admin "${rawText}" para conversa ${phone}`);
+
+        debounceService.addMessage({
+          phone,
+          text: rawText,
+          name: "admin",
+          messageId: key.id,
+          timestamp: Date.now(),
+        });
+      }
       return res.sendStatus(200);
     }
 
@@ -56,7 +72,7 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
       );
 
       // Busca o base64 do áudio via Evolution API
-      const mediaData = await getBase64FromMediaMessage(key.id, key.remoteJid);
+      const mediaData = await getBase64FromMediaMessage(key.id);
 
       if (mediaData?.base64) {
         // Transcreve o áudio
