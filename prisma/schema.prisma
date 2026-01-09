@@ -10,7 +10,7 @@ datasource db {
 model Seller {
   id         String    @id @default(uuid())
   name       String
-  email      String    @unique
+  email      String
   phone      String?
   calendarId String    // ID do Google Calendar do vendedor
   isActive   Boolean   @default(true)

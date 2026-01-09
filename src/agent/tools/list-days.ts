@@ -31,11 +31,13 @@ export const listAvailableDaysTool = tool(
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
 
-      // Se já passou das 18:00, não inclui hoje (última reunião começa às 18:00)
-      const todayIsAvailable = currentHour < 18;
+      // Se já passou das 17:30, não inclui hoje (última reunião começa às 17:30)
+      const todayIsAvailable =
+        currentHour < 17 || (currentHour === 17 && currentMinute < 30);
 
       let currentDate = new Date(now);
-      currentDate.setHours(0, 0, 0, 0);
+      // Usa meio-dia para evitar problemas de timezone (meia-noite UTC pode virar dia anterior em Brasília)
+      currentDate.setHours(12, 0, 0, 0);
 
       // Se hoje não está mais disponível, começa de amanhã
       if (!todayIsAvailable) {

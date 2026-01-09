@@ -3,7 +3,11 @@ import * as debounceService from "../services/debounce.js";
 import {
   extractPhoneFromJid,
   extractMessageText,
+  hasAudioMessage,
+  getAudioInfo,
+  getBase64FromMediaMessage,
 } from "../services/evolution.js";
+import { transcribeAudio } from "../services/transcription.js";
 import type { EvolutionWebhookPayload } from "../types/index.js";
 
 export const webhookRouter = Router();
@@ -38,15 +42,49 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
       return res.sendStatus(200);
     }
 
-    // Extrai texto da mensagem
-    const text = extractMessageText(message);
-    if (!text) {
-      console.log("[Webhook] Mensagem sem texto ignorada");
-      return res.sendStatus(200);
-    }
-
     // Extrai telefone
     const phone = extractPhoneFromJid(key.remoteJid);
+
+    // Tenta extrair texto da mensagem
+    let text = extractMessageText(message);
+
+    // Se não tem texto, verifica se é áudio
+    if (!text && hasAudioMessage(message)) {
+      const audioInfo = getAudioInfo(message);
+      console.log(
+        `[Webhook] Áudio recebido de ${phone} (${audioInfo?.seconds}s, ${audioInfo?.mimetype})`
+      );
+
+      // Busca o base64 do áudio via Evolution API
+      const mediaData = await getBase64FromMediaMessage(key.id, key.remoteJid);
+
+      if (mediaData?.base64) {
+        // Transcreve o áudio
+        const transcription = await transcribeAudio(
+          mediaData.base64,
+          mediaData.mimetype
+        );
+
+        if (transcription) {
+          text = transcription;
+          console.log(
+            `[Webhook] Áudio transcrito de ${phone}: "${text.substring(0, 50)}..."`
+          );
+        } else {
+          console.log("[Webhook] Falha ao transcrever áudio, ignorando");
+          return res.sendStatus(200);
+        }
+      } else {
+        console.log("[Webhook] Não foi possível obter base64 do áudio");
+        return res.sendStatus(200);
+      }
+    }
+
+    // Se ainda não tem texto, ignora
+    if (!text) {
+      console.log("[Webhook] Mensagem sem texto e sem áudio ignorada");
+      return res.sendStatus(200);
+    }
 
     console.log(
       `[Webhook] Mensagem recebida de ${phone}: ${text.substring(0, 50)}...`

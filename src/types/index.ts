@@ -59,7 +59,18 @@ export interface EvolutionMessage {
     extendedTextMessage?: {
       text?: string;
     };
+    audioMessage?: {
+      url?: string;
+      mimetype?: string;
+      fileSha256?: string;
+      fileLength?: string;
+      seconds?: number;
+      ptt?: boolean; // push-to-talk (áudio de voz)
+      mediaKey?: string;
+    };
   };
+  // Base64 do áudio (quando webhook_base64 está habilitado)
+  base64?: string;
 }
 
 export interface EvolutionWebhookPayload {

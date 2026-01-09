@@ -116,3 +116,65 @@ export function extractMessageText(message: any): string | null {
     null
   );
 }
+
+/**
+ * Verifica se a mensagem contém áudio
+ */
+export function hasAudioMessage(message: any): boolean {
+  return !!message?.audioMessage;
+}
+
+/**
+ * Extrai informações do áudio da mensagem
+ */
+export function getAudioInfo(message: any): {
+  mimetype: string;
+  seconds: number;
+} | null {
+  if (!message?.audioMessage) return null;
+  return {
+    mimetype: message.audioMessage.mimetype || "audio/ogg",
+    seconds: message.audioMessage.seconds || 0,
+  };
+}
+
+/**
+ * Busca o base64 de uma mídia (áudio, imagem, etc) via Evolution API
+ * Usa o endpoint /chat/getBase64FromMediaMessage
+ */
+export async function getBase64FromMediaMessage(
+  messageId: string,
+  remoteJid: string
+): Promise<{ base64: string; mimetype: string } | null> {
+  try {
+    console.log(`[Evolution] Buscando base64 para mensagem ${messageId}...`);
+
+    const response = await api.post(
+      `/chat/getBase64FromMediaMessage/${env.evolutionInstance}`,
+      {
+        message: {
+          key: {
+            remoteJid,
+            id: messageId,
+          },
+        },
+      }
+    );
+
+    if (response.data?.base64) {
+      console.log(
+        `[Evolution] Base64 obtido com sucesso (${response.data.mimetype})`
+      );
+      return {
+        base64: response.data.base64,
+        mimetype: response.data.mimetype || "audio/ogg",
+      };
+    }
+
+    console.log("[Evolution] Resposta sem base64:", response.data);
+    return null;
+  } catch (error: any) {
+    console.error("[Evolution] Erro ao buscar base64:", error.message);
+    return null;
+  }
+}

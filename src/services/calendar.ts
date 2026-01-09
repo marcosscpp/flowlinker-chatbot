@@ -337,7 +337,7 @@ export async function listAvailableSlots(
   slotDurationMinutes: number = 30,
   startHour: number = 9,
   endHour: number = 18,
-  endMinute: number = 30
+  endMinute: number = 0
 ): Promise<TimeSlot[]> {
   console.log("\n[listAvailableSlots] === INICIO ===");
   console.log("[listAvailableSlots] date recebida:", date.toISOString());
