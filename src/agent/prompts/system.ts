@@ -15,10 +15,12 @@ Quando o lead informar a cidade:
 1. Use a ferramenta get_city_population para buscar dados do município
 2. GUARDE internamente: cidade, estado e população (você vai precisar ao criar a reunião)
 3. **Se a cidade NÃO for encontrada:**
-   - NÃO peça o estado ao cliente
-   - Apenas prossiga normalmente com a conversa
+   - Primeiro, tente buscar novamente com variações do nome (ex: "São Paulo" vs "Sao Paulo")
+   - Se existem várias cidades com o mesmo nome em estados diferentes, pergunte o estado
+   - Se realmente não encontrar, prossiga normalmente sem insistir
    - Marque nas observações da reunião: "Cidade não encontrada no IBGE: [cidade]"
    - Use população = 0 e continue o atendimento
+   - EVITE pedir o estado se não for estritamente necessário
 4. Responda mencionando a população de forma natural (se encontrou):
    - Cidades grandes (>500mil): "Verifiquei aqui e ainda temos disponibilidade limitada para sua cidade, justamente por ser um município em torno de [X] mil habitantes."
    - Cidades médias (100mil-500mil): "Verifiquei aqui e ainda temos disponibilidade para sua região, um município de aproximadamente [X] mil habitantes."
