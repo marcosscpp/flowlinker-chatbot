@@ -29,7 +29,15 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
       return res.sendStatus(400);
     }
 
-    const { key, message, pushName } = payload.data;
+    const { key, message, pushName, messageType } = payload.data;
+
+    // Log do payload para debug
+    console.log("[Webhook] Payload recebido:", JSON.stringify({
+      messageType,
+      hasBase64: !!message?.base64,
+      hasAudioMessage: !!message?.audioMessage,
+      mimetype: message?.audioMessage?.mimetype,
+    }, null, 2));
 
     // Extrai texto para verificar comandos admin
     const rawText = extractMessageText(message)?.trim();
@@ -64,22 +72,29 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
     // Tenta extrair texto da mensagem
     let text = extractMessageText(message);
 
-    // Se não tem texto, verifica se é áudio
-    if (!text && hasAudioMessage(message)) {
+    // Se não tem texto, verifica se é áudio (por messageType ou audioMessage)
+    const isAudio = messageType === "audioMessage" || hasAudioMessage(message);
+
+    if (!text && isAudio) {
       const audioInfo = getAudioInfo(message);
+      const mimetype = audioInfo?.mimetype || "audio/ogg";
       console.log(
-        `[Webhook] Áudio recebido de ${phone} (${audioInfo?.seconds}s, ${audioInfo?.mimetype})`
+        `[Webhook] Áudio recebido de ${phone} (${audioInfo?.seconds}s, ${mimetype})`
       );
 
-      // Busca o base64 do áudio via Evolution API
-      const mediaData = await getBase64FromMediaMessage(key.id);
+      // Tenta pegar base64 direto do webhook (se webhook_base64 estiver habilitado)
+      let base64 = message?.base64;
 
-      if (mediaData?.base64) {
+      // Se não veio no webhook, busca via API
+      if (!base64) {
+        console.log("[Webhook] Base64 não veio no webhook, buscando via API...");
+        const mediaData = await getBase64FromMediaMessage(key.id);
+        base64 = mediaData?.base64;
+      }
+
+      if (base64) {
         // Transcreve o áudio
-        const transcription = await transcribeAudio(
-          mediaData.base64,
-          mediaData.mimetype
-        );
+        const transcription = await transcribeAudio(base64, mimetype);
 
         if (transcription) {
           text = transcription;
