@@ -48,6 +48,8 @@ export const listAvailableSlotsTool = tool(
         return `${start} - ${end}`;
       });
 
+      console.log("formattedSlots", formattedSlots);
+
       return JSON.stringify({
         success: true,
         available: true,

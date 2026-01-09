@@ -8,8 +8,8 @@
 import * as readline from "readline";
 import { processMessageDebug, clearHistory } from "../src/agent/index.js";
 
-const TEST_PHONE = "5511999999993";
-const TEST_NAME = "Cliente Teste 3";
+const TEST_PHONE = "5511999999991";
+const TEST_NAME = "Cliente Teste 1";
 
 const rl = readline.createInterface({
   input: process.stdin,
