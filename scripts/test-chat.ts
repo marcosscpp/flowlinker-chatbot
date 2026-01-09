@@ -6,7 +6,7 @@
  */
 
 import * as readline from "readline";
-import { processMessage, clearHistory } from "../src/agent/index.js";
+import { processMessageDebug, clearHistory } from "../src/agent/index.js";
 
 const TEST_PHONE = "5511999999999";
 const TEST_NAME = "Cliente Teste";
@@ -49,7 +49,7 @@ async function chat(userMessage: string): Promise<void> {
     console.log("\n📋 Informações do teste:");
     console.log(`   Telefone: ${TEST_PHONE}`);
     console.log(`   Nome: ${TEST_NAME}`);
-    console.log(`   Modelo: gpt-4o-mini`);
+    console.log(`   Modelo: gpt-4o`);
     console.log(`   Data/Hora: ${new Date().toLocaleString("pt-BR")}\n`);
     return;
   }
@@ -58,9 +58,29 @@ async function chat(userMessage: string): Promise<void> {
     console.log("\n⏳ Processando...\n");
 
     const startTime = Date.now();
-    const response = await processMessage(TEST_PHONE, userMessage, TEST_NAME);
+    const { response, toolCalls } = await processMessageDebug(
+      TEST_PHONE,
+      userMessage,
+      TEST_NAME
+    );
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
 
+    // Mostra tools chamadas
+    if (toolCalls.length > 0) {
+      console.log("┌─ TOOLS CHAMADAS ──────────────────────────────────────────┐");
+      for (const tool of toolCalls) {
+        console.log(`│ 🔧 ${tool.name}`);
+        const argsStr = JSON.stringify(tool.args, null, 2)
+          .split("\n")
+          .map((line) => `│    ${line}`)
+          .join("\n");
+        console.log(argsStr);
+      }
+      console.log("└────────────────────────────────────────────────────────────┘");
+      console.log("");
+    }
+
+    // Mostra resposta
     console.log("┌─ BOT ─────────────────────────────────────────────────────┐");
     console.log("");
     console.log(response);

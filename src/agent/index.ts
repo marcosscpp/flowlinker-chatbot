@@ -157,3 +157,83 @@ export async function clearHistory(phone: string): Promise<void> {
     })
     .catch(() => {});
 }
+
+/**
+ * Informacoes de uma tool chamada
+ */
+export interface ToolCall {
+  name: string;
+  args: Record<string, any>;
+}
+
+/**
+ * Resultado do processamento com debug
+ */
+export interface ProcessMessageDebugResult {
+  response: string;
+  toolCalls: ToolCall[];
+}
+
+/**
+ * Processa mensagem com informacoes de debug (tools chamadas)
+ */
+export async function processMessageDebug(
+  phone: string,
+  text: string,
+  name?: string
+): Promise<ProcessMessageDebugResult> {
+  try {
+    // Carrega historico
+    const history = await loadConversationHistory(phone);
+
+    // Adiciona mensagem do usuario ao historico
+    history.push({ role: "user", content: text });
+
+    // Constroi mensagens para o agente
+    const messages = historyToMessages(history);
+
+    // Executa o agente com o system prompt
+    const systemPrompt = buildSystemPrompt(phone, name);
+
+    const result = await agent.invoke({
+      messages: [{ role: "system", content: systemPrompt }, ...messages],
+    });
+
+    // Extrai tools chamadas dos messages intermediarios
+    const toolCalls: ToolCall[] = [];
+    for (const msg of result.messages) {
+      if (msg.constructor.name === "AIMessage" && (msg as any).tool_calls) {
+        for (const tc of (msg as any).tool_calls) {
+          toolCalls.push({
+            name: tc.name,
+            args: tc.args,
+          });
+        }
+      }
+    }
+
+    // Extrai a resposta do agente
+    const lastMessage = result.messages[result.messages.length - 1];
+    const response =
+      typeof lastMessage.content === "string"
+        ? lastMessage.content
+        : JSON.stringify(lastMessage.content);
+
+    // Adiciona resposta ao historico
+    history.push({ role: "assistant", content: response });
+
+    // Salva historico atualizado
+    await saveConversationHistory(phone, history);
+
+    return { response, toolCalls };
+  } catch (error: any) {
+    console.error("Erro ao processar mensagem:", error);
+
+    return {
+      response:
+        "Desculpe, ocorreu um erro ao processar sua mensagem. " +
+        "Por favor, tente novamente em alguns instantes.",
+      toolCalls: [],
+    };
+  }
+}
