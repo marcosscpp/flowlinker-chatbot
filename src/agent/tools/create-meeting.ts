@@ -2,6 +2,7 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import * as meetingService from "../../services/meeting.js";
 import { prisma } from "../../database/client.js";
+import { createBrasiliaDate } from "../../services/calendar.js";
 
 export const createMeetingTool = tool(
   async ({
@@ -22,7 +23,8 @@ export const createMeetingTool = tool(
       const [year, month, day] = date.split("-").map(Number);
       const [startHour, startMin] = startTime.split(":").map(Number);
 
-      const start = new Date(year, month - 1, day, startHour, startMin);
+      // Cria a data no horário de Brasília (independente do timezone do servidor)
+      const start = createBrasiliaDate(year, month, day, startHour, startMin);
       // Duracao padrao: 30 minutos
       const end = new Date(start.getTime() + 30 * 60 * 1000);
 

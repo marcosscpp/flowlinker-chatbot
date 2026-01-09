@@ -1,13 +1,14 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import * as calendarService from "../../services/calendar.js";
+import { createBrasiliaDate } from "../../services/calendar.js";
 
 export const listAvailableSlotsTool = tool(
   async ({ date, slotDuration }) => {
     try {
-      // Parseia data
+      // Parseia data e cria no horário de Brasília
       const [year, month, day] = date.split("-").map(Number);
-      const targetDate = new Date(year, month - 1, day);
+      const targetDate = createBrasiliaDate(year, month, day, 12, 0); // Meio-dia para garantir o dia correto
 
       // Valida se a data e no futuro ou hoje
       const today = new Date();

@@ -7,19 +7,81 @@ import type {
 } from "../types/index.js";
 
 const TIMEZONE = "America/Sao_Paulo";
+const BRASILIA_OFFSET = -3; // UTC-3
+
+/**
+ * Cria uma data no horário de Brasília, independente do timezone do servidor
+ * @param year Ano
+ * @param month Mês (1-12)
+ * @param day Dia
+ * @param hours Horas (0-23)
+ * @param minutes Minutos (0-59)
+ * @returns Date object que representa o horário de Brasília
+ */
+export function createBrasiliaDate(
+  year: number,
+  month: number,
+  day: number,
+  hours: number = 0,
+  minutes: number = 0
+): Date {
+  // Cria a data em UTC e ajusta para Brasília
+  // Ex: 15:00 Brasília = 18:00 UTC (adiciona 3 horas)
+  const utcDate = new Date(
+    Date.UTC(year, month - 1, day, hours - BRASILIA_OFFSET, minutes, 0, 0)
+  );
+  return utcDate;
+}
+
+/**
+ * Retorna a hora atual em Brasília
+ */
+export function getNowInBrasilia(): Date {
+  return new Date();
+}
+
+/**
+ * Extrai componentes de data no horário de Brasília
+ */
+export function getBrasiliaComponents(date: Date): {
+  year: number;
+  month: number;
+  day: number;
+  hours: number;
+  minutes: number;
+  dayOfWeek: number;
+} {
+  // Converte para string no timezone de Brasília e extrai componentes
+  const brasiliaStr = date.toLocaleString("en-CA", {
+    timeZone: TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  
+  // Formato: "2026-01-09, 15:00"
+  const [datePart, timePart] = brasiliaStr.split(", ");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hours, minutes] = timePart.split(":").map(Number);
+  
+  // Calcula o dia da semana no timezone de Brasília
+  const dayOfWeek = new Date(
+    date.toLocaleString("en-US", { timeZone: TIMEZONE })
+  ).getDay();
+  
+  return { year, month, day, hours, minutes, dayOfWeek };
+}
 
 /**
  * Formata uma data para o formato ISO sem indicador UTC (Z)
  * Isso permite que o Google Calendar use o timeZone especificado corretamente
  */
 function formatDateTimeForCalendar(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const seconds = String(date.getSeconds()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  const { year, month, day, hours, minutes } = getBrasiliaComponents(date);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
 }
 
 export interface CreatedCalendarEvent {
@@ -274,36 +336,44 @@ export async function listAvailableSlots(
   endHour: number = 18,
   endMinute: number = 30
 ): Promise<TimeSlot[]> {
+  // Extrai componentes da data no horário de Brasília
+  const dateComponents = getBrasiliaComponents(date);
+  const { year, month, day, dayOfWeek } = dateComponents;
+  
   // Verifica se é fim de semana (0 = domingo, 6 = sábado)
-  const dayOfWeek = date.getDay();
   if (dayOfWeek === 0 || dayOfWeek === 6) {
     return []; // Não agenda em fins de semana
   }
 
+  // Cria horário de início no timezone de Brasília
+  let dayStart = createBrasiliaDate(year, month, day, startHour, 0);
+  const dayEnd = createBrasiliaDate(year, month, day, endHour, endMinute);
+
+  // Verifica se é hoje (no horário de Brasília)
   const now = new Date();
-  const dayStart = new Date(date);
-  dayStart.setHours(startHour, 0, 0, 0);
+  const nowComponents = getBrasiliaComponents(now);
+  const isToday = 
+    nowComponents.year === year && 
+    nowComponents.month === month && 
+    nowComponents.day === day;
 
   // Se for hoje, começa a partir do horário atual (arredondado para o próximo slot)
-  const isToday = date.toDateString() === now.toDateString();
   if (isToday && now > dayStart) {
     // Arredonda para o próximo slot de 30 minutos
-    const minutes = now.getMinutes();
     const nextSlotMinutes =
-      Math.ceil(minutes / slotDurationMinutes) * slotDurationMinutes;
-    dayStart.setHours(now.getHours(), nextSlotMinutes, 0, 0);
-
+      Math.ceil(nowComponents.minutes / slotDurationMinutes) * slotDurationMinutes;
+    
+    let adjustedHour = nowComponents.hours;
+    let adjustedMinutes = nextSlotMinutes;
+    
     // Se o arredondamento passou para a próxima hora
     if (nextSlotMinutes >= 60) {
-      dayStart.setHours(now.getHours() + 1, 0, 0, 0);
+      adjustedHour += 1;
+      adjustedMinutes = 0;
     }
+    
+    dayStart = createBrasiliaDate(year, month, day, adjustedHour, adjustedMinutes);
   }
-
-  const dayEnd = new Date(date);
-  // Último slot deve TERMINAR às 18:30, então último início é 18:00
-  // endHour=18, endMinute=30 significa que reuniões devem terminar até 18:30
-  // Com slots de 30min, último início permitido é 18:00
-  dayEnd.setHours(endHour, endMinute, 0, 0);
 
   // Se for hoje e já passou do horário comercial, retorna vazio
   if (isToday && dayStart >= dayEnd) {

@@ -2,6 +2,7 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import * as meetingService from "../../services/meeting.js";
 import * as evolutionService from "../../services/evolution.js";
+import { createBrasiliaDate } from "../../services/calendar.js";
 
 export const rescheduleMeetingTool = tool(
   async ({ oldMeetingId, date, startTime }) => {
@@ -9,7 +10,8 @@ export const rescheduleMeetingTool = tool(
       const [year, month, day] = date.split("-").map(Number);
       const [startHour, startMin] = startTime.split(":").map(Number);
 
-      const start = new Date(year, month - 1, day, startHour, startMin);
+      // Cria a data no horário de Brasília (independente do timezone do servidor)
+      const start = createBrasiliaDate(year, month, day, startHour, startMin);
 
       if (start < new Date()) {
         return JSON.stringify({
