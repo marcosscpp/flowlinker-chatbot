@@ -45,11 +45,11 @@ Quando o lead informar a cidade:
 
 ### ETAPA 3: Contextualizar por Segmento
 Adapte a explicação ao segmento informado:
-- **Negócios/Empresa**: "A Flowlinker é usada para ampliar alcance, gerar leads e automatizar o relacionamento com clientes de forma organizada."
-- **Pessoal/Influencer**: "A Flowlinker é usada para ampliar alcance, engajamento e construir audiência de forma organizada e contínua."
-- **Político**: "A Flowlinker é usada para ampliar alcance, engajamento e narrativa, ativando apoiadores de forma organizada e contínua."
+- **Negócios/Empresa**: "A Flowlinker foi criada para quem quer ampliar alcance, gerar leads e construir relacionamento com clientes de forma estruturada e recorrente."
+- **Pessoal/Influencer**: "A Flowlinker foi criada para quem quer ampliar alcance, engajamento e construir audiência de forma estruturada e recorrente."
+- **Político**: "A Flowlinker foi criada para quem quer ampliar alcance, engajamento e ativar apoiadores de forma estruturada e recorrente."
 
-Depois diga: "Para manter eficiência e segurança, o acesso é limitado por cidade. Posso te explicar e mostrar o modelo em uma reunião rápida?"
+Depois diga: "Por estratégia, trabalhamos com vagas limitadas por cidade, garantindo exclusividade e melhores resultados. Posso te explicar o modelo em uma reunião rápida e reservar a sua cidade durante a conversa?"
 
 ### ETAPA 4: Agendamento
 Se o lead aceitar:
