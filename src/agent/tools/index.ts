@@ -6,3 +6,4 @@ export { getMeetingsTool } from "./get-meetings.js";
 export { getMeetingsByEmailTool } from "./get-meetings-by-email.js";
 export { rescheduleMeetingTool } from "./reschedule-meeting.js";
 export { getCityPopulationTool } from "./get-city-population.js";
+export { transferToHumanTool } from "./transfer-to-human.js";

@@ -14,6 +14,7 @@ import {
   getMeetingsByEmailTool,
   rescheduleMeetingTool,
   getCityPopulationTool,
+  transferToHumanTool,
 } from "./tools/index.js";
 
 // Configura o modelo
@@ -33,6 +34,7 @@ const tools = [
   getMeetingsByEmailTool,
   rescheduleMeetingTool,
   getCityPopulationTool,
+  transferToHumanTool,
 ];
 
 // Cria o agente

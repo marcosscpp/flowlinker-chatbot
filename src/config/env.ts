@@ -33,4 +33,7 @@ export const env = {
 
   // Debounce - tempo de espera antes de processar mensagens (em ms)
   debounceDelay: parseInt(optionalEnv('DEBOUNCE_DELAY', '3000'), 10),
+
+  // Grupo de vendedores para transferência humana
+  sellersGroupId: optionalEnv('SELLERS_GROUP_ID', ''),
 };
