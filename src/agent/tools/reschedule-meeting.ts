@@ -38,14 +38,16 @@ export const rescheduleMeetingTool = tool(
         const end = new Date(start.getTime() + 30 * 60 * 1000);
         const sellerMsg =
           `🔁 Reuniao remarcada\n\n` +
-          `Data: ${start.toLocaleDateString("pt-BR")}\n` +
+          `Data: ${start.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}\n` +
           `Horario: ${start.toLocaleTimeString("pt-BR", {
             hour: "2-digit",
             minute: "2-digit",
+            timeZone: "America/Sao_Paulo",
           })} - ` +
           `${end.toLocaleTimeString("pt-BR", {
             hour: "2-digit",
             minute: "2-digit",
+            timeZone: "America/Sao_Paulo",
           })}\n` +
           `\nLink: ${newMeeting.meetLink}`;
 

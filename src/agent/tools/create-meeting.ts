@@ -105,13 +105,15 @@ export const createMeetingTool = tool(
         const sellerMsg =
           `📅 Nova reuniao agendada\n\n` +
           `Cliente: ${clientName || clientPhone}\n` +
-          `Data: ${start.toLocaleDateString("pt-BR")}\n` +
+          `Data: ${start.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}\n` +
           `Horario: ${start.toLocaleTimeString("pt-BR", {
             hour: "2-digit",
             minute: "2-digit",
+            timeZone: "America/Sao_Paulo",
           })} - ${end.toLocaleTimeString("pt-BR", {
             hour: "2-digit",
             minute: "2-digit",
+            timeZone: "America/Sao_Paulo",
           })}\n` +
           (subject ? `Assunto: ${subject}\n` : "") +
           `\nLink: ${result.meetLink}`;
