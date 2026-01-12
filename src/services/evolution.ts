@@ -12,11 +12,15 @@ const api = axios.create({
 /**
  * Envia mensagem de texto via WhatsApp
  */
-export async function sendText(phone: string, text: string): Promise<void> {
+export async function sendText(
+  instance: string,
+  phone: string,
+  text: string
+): Promise<void> {
   // Formata o numero (remove caracteres especiais, adiciona codigo do pais se necessario)
   const formattedPhone = formatPhone(phone);
 
-  await api.post(`/message/sendText/${env.evolutionInstance}`, {
+  await api.post(`/message/sendText/${instance}`, {
     number: formattedPhone,
     text,
   });
@@ -26,6 +30,7 @@ export async function sendText(phone: string, text: string): Promise<void> {
  * Envia mensagem com botoes
  */
 export async function sendButtons(
+  instance: string,
   phone: string,
   title: string,
   description: string,
@@ -33,7 +38,7 @@ export async function sendButtons(
 ): Promise<void> {
   const formattedPhone = formatPhone(phone);
 
-  await api.post(`/message/sendButtons/${env.evolutionInstance}`, {
+  await api.post(`/message/sendButtons/${instance}`, {
     number: formattedPhone,
     title,
     description,
@@ -45,6 +50,7 @@ export async function sendButtons(
  * Envia lista de opcoes
  */
 export async function sendList(
+  instance: string,
   phone: string,
   title: string,
   description: string,
@@ -56,7 +62,7 @@ export async function sendList(
 ): Promise<void> {
   const formattedPhone = formatPhone(phone);
 
-  await api.post(`/message/sendList/${env.evolutionInstance}`, {
+  await api.post(`/message/sendList/${instance}`, {
     number: formattedPhone,
     title,
     description,
@@ -69,10 +75,11 @@ export async function sendList(
  * Marca mensagem como lida
  */
 export async function markAsRead(
+  instance: string,
   remoteJid: string,
   messageId: string
 ): Promise<void> {
-  await api.put(`/chat/markMessageAsRead/${env.evolutionInstance}`, {
+  await api.put(`/chat/markMessageAsRead/${instance}`, {
     readMessages: [
       {
         remoteJid,
@@ -146,6 +153,7 @@ export function getAudioInfo(message: any): {
  * incluindo a key E o message com os dados da mídia (mediaKey, url, etc)
  */
 export async function getBase64FromMediaMessage(
+  instance: string,
   key: { id: string; remoteJid: string; fromMe: boolean },
   message: any
 ): Promise<{ base64: string; mimetype: string } | null> {
@@ -153,7 +161,7 @@ export async function getBase64FromMediaMessage(
     console.log(`[Evolution] Buscando base64 para mensagem ${key.id}...`);
 
     const response = await api.post(
-      `/chat/getBase64FromMediaMessage/${env.evolutionInstance}`,
+      `/chat/getBase64FromMediaMessage/${instance}`,
       {
         message: {
           key,

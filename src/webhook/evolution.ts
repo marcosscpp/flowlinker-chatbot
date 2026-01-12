@@ -8,6 +8,7 @@ import {
   getBase64FromMediaMessage,
 } from "../services/evolution.js";
 import { transcribeAudio } from "../services/transcription.js";
+import { isValidInstance } from "../config/instances.js";
 import type { EvolutionWebhookPayload } from "../types/index.js";
 
 export const webhookRouter = Router();
@@ -29,6 +30,15 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
       return res.sendStatus(400);
     }
 
+    // Extrai instância do payload (vem do Evolution API)
+    const instance = payload.instance;
+
+    // Valida se é uma instância conhecida
+    if (!isValidInstance(instance)) {
+      console.log(`[Webhook] Instância desconhecida: ${instance}`);
+      return res.sendStatus(200);
+    }
+
     const { key, message, pushName, messageType } = payload.data;
 
     // Extrai texto para verificar comandos admin
@@ -40,10 +50,11 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
       if (rawText === "." || rawText === "..") {
         const phone = extractPhoneFromJid(key.remoteJid);
         console.log(
-          `[Webhook] Comando admin "${rawText}" para conversa ${phone}`
+          `[Webhook] Comando admin "${rawText}" para conversa ${phone}@${instance}`
         );
 
         debounceService.addMessage({
+          instance,
           phone,
           text: rawText,
           name: "admin",
@@ -79,8 +90,8 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
       // Tenta pegar base64 direto do webhook, senão busca via API
       let base64 = message?.base64;
       if (!base64) {
-        // Passa a key completa E o message com os dados da mídia
-        const mediaData = await getBase64FromMediaMessage(key, message);
+        // Passa a instância, key completa E o message com os dados da mídia
+        const mediaData = await getBase64FromMediaMessage(instance, key, message);
         base64 = mediaData?.base64;
       }
 
@@ -113,11 +124,12 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
     }
 
     console.log(
-      `[Webhook] Mensagem recebida de ${phone}: ${text.substring(0, 50)}...`
+      `[Webhook] Mensagem recebida de ${phone}@${instance}: ${text.substring(0, 50)}...`
     );
 
     // Adiciona ao debounce (será processado após período de inatividade)
     debounceService.addMessage({
+      instance,
       phone,
       text,
       name: pushName,

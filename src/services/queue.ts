@@ -51,6 +51,7 @@ export async function connect(): Promise<void> {
  * Publica mensagem na fila
  */
 export async function publishMessage(data: {
+  instance: string;
   phone: string;
   text: string;
   name?: string;
@@ -71,7 +72,7 @@ export async function publishMessage(data: {
       timestamp: data.timestamp,
     });
 
-    console.log(`[RabbitMQ] Mensagem enfileirada: ${data.phone}`);
+    console.log(`[RabbitMQ] Mensagem enfileirada: ${data.phone}@${data.instance}`);
     return true;
   } catch (error) {
     console.error('[RabbitMQ] Erro ao publicar:', error);
@@ -84,6 +85,7 @@ export async function publishMessage(data: {
  */
 export async function consumeMessages(
   handler: (data: {
+    instance: string;
     phone: string;
     text: string;
     name?: string;
@@ -102,13 +104,13 @@ export async function consumeMessages(
 
       try {
         const data = JSON.parse(msg.content.toString());
-        console.log(`[RabbitMQ] Processando mensagem de: ${data.phone}`);
+        console.log(`[RabbitMQ] Processando mensagem de: ${data.phone}@${data.instance}`);
 
         await handler(data);
 
         // Confirma processamento
         channel!.ack(msg);
-        console.log(`[RabbitMQ] Mensagem processada: ${data.phone}`);
+        console.log(`[RabbitMQ] Mensagem processada: ${data.phone}@${data.instance}`);
       } catch (error) {
         console.error('[RabbitMQ] Erro ao processar:', error);
 

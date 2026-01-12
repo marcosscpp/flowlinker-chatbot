@@ -42,17 +42,18 @@ async function setBotDisabled(phone: string, disabled: boolean): Promise<void> {
 }
 
 async function handleMessage(data: {
+  instance: string;
   phone: string;
   text: string;
   name?: string;
   messageId: string;
   timestamp: number;
 }): Promise<void> {
-  const { phone, text, name } = data;
+  const { instance, phone, text, name } = data;
   const trimmedText = text.trim();
 
   console.log(
-    `[Worker] Processando mensagem de ${phone}: "${trimmedText.substring(
+    `[Worker] Processando mensagem de ${phone}@${instance}: "${trimmedText.substring(
       0,
       30
     )}..."`
@@ -86,13 +87,13 @@ async function handleMessage(data: {
     // Processa com o agente
     const response = await processMessage(phone, text, name);
 
-    // Envia resposta via WhatsApp
-    await evolutionService.sendText(phone, response);
+    // Envia resposta via WhatsApp pela mesma instância que recebeu
+    await evolutionService.sendText(instance, phone, response);
 
     const elapsed = Date.now() - startTime;
-    console.log(`[Worker] Resposta enviada para ${phone} (${elapsed}ms)`);
+    console.log(`[Worker] Resposta enviada para ${phone}@${instance} (${elapsed}ms)`);
   } catch (error) {
-    console.error(`[Worker] Erro ao processar mensagem de ${phone}:`, error);
+    console.error(`[Worker] Erro ao processar mensagem de ${phone}@${instance}:`, error);
     throw error; // Re-throw para que a mensagem va para DLQ
   }
 }

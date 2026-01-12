@@ -16,10 +16,9 @@ export const env = {
   // OpenAI
   openaiApiKey: requireEnv('OPENAI_API_KEY'),
 
-  // Evolution API
+  // Evolution API (instâncias são configuradas em src/config/instances.ts)
   evolutionApiUrl: requireEnv('EVOLUTION_API_URL'),
   evolutionApiKey: requireEnv('EVOLUTION_API_KEY'),
-  evolutionInstance: requireEnv('EVOLUTION_INSTANCE'),
 
   // Database
   databaseUrl: requireEnv('DATABASE_URL'),

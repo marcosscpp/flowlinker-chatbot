@@ -12,10 +12,11 @@ import { env } from "../config/env.js";
 import * as queueService from "./queue.js";
 
 // Tempo de espera antes de processar (em ms)
-// Configurável via DEBOUNCE_DELAY no .env (padrão: 3000ms)
-const DEBOUNCE_DELAY = env.debounceDelay;
+// Configurável via DEBOUNCE_DELAY no .env (padrão: 5000ms)
+const DEBOUNCE_DELAY = env.debounceDelay || 5000;
 
 interface PendingMessage {
+  instance: string;
   phone: string;
   texts: string[];
   name?: string;
@@ -31,17 +32,22 @@ const pendingMessages = new Map<string, PendingMessage>();
  * Adiciona uma mensagem ao buffer de debounce
  * Se já houver mensagens pendentes do mesmo usuário, concatena
  * Reseta o timer a cada nova mensagem
+ *
+ * A chave do Map é `${instance}:${phone}` para separar por instância
  */
 export function addMessage(data: {
+  instance: string;
   phone: string;
   text: string;
   name?: string;
   messageId: string;
   timestamp: number;
 }): void {
-  const { phone, text, name, messageId, timestamp } = data;
+  const { instance, phone, text, name, messageId, timestamp } = data;
 
-  const existing = pendingMessages.get(phone);
+  // Chave composta para separar por instância
+  const key = `${instance}:${phone}`;
+  const existing = pendingMessages.get(key);
 
   if (existing) {
     // Já tem mensagens pendentes - adiciona ao buffer e reseta timer
@@ -56,19 +62,20 @@ export function addMessage(data: {
 
     // Cria novo timer
     existing.timer = setTimeout(() => {
-      flushMessages(phone);
+      flushMessages(key);
     }, DEBOUNCE_DELAY);
 
     console.log(
-      `[Debounce] Mensagem acumulada para ${phone} (${existing.texts.length} msgs)`
+      `[Debounce] Mensagem acumulada para ${phone}@${instance} (${existing.texts.length} msgs)`
     );
   } else {
     // Primeira mensagem - cria entrada no buffer
     const timer = setTimeout(() => {
-      flushMessages(phone);
+      flushMessages(key);
     }, DEBOUNCE_DELAY);
 
-    pendingMessages.set(phone, {
+    pendingMessages.set(key, {
+      instance,
       phone,
       texts: [text],
       name,
@@ -77,7 +84,7 @@ export function addMessage(data: {
       timer,
     });
 
-    console.log(`[Debounce] Nova mensagem de ${phone}, aguardando ${DEBOUNCE_DELAY}ms...`);
+    console.log(`[Debounce] Nova mensagem de ${phone}@${instance}, aguardando ${DEBOUNCE_DELAY}ms...`);
   }
 }
 
@@ -85,23 +92,24 @@ export function addMessage(data: {
  * Processa mensagens acumuladas de um usuário
  * Concatena todas as mensagens e envia para a fila
  */
-async function flushMessages(phone: string): Promise<void> {
-  const pending = pendingMessages.get(phone);
+async function flushMessages(key: string): Promise<void> {
+  const pending = pendingMessages.get(key);
   if (!pending) return;
 
   // Remove do buffer
-  pendingMessages.delete(phone);
+  pendingMessages.delete(key);
 
   // Concatena todas as mensagens
   const combinedText = pending.texts.join("\n");
   const combinedMessageId = pending.messageIds.join("_");
 
   console.log(
-    `[Debounce] Processando ${pending.texts.length} mensagem(s) de ${phone}`
+    `[Debounce] Processando ${pending.texts.length} mensagem(s) de ${pending.phone}@${pending.instance}`
   );
 
-  // Envia para a fila
+  // Envia para a fila com a instância
   const queued = await queueService.publishMessage({
+    instance: pending.instance,
     phone: pending.phone,
     text: combinedText,
     name: pending.name,
@@ -110,7 +118,7 @@ async function flushMessages(phone: string): Promise<void> {
   });
 
   if (!queued) {
-    console.error(`[Debounce] Falha ao enfileirar mensagens de ${phone}`);
+    console.error(`[Debounce] Falha ao enfileirar mensagens de ${pending.phone}@${pending.instance}`);
   }
 }
 
@@ -128,13 +136,13 @@ export function getPendingCount(): number {
 export async function flushAll(): Promise<void> {
   console.log(`[Debounce] Forçando flush de ${pendingMessages.size} usuários`);
 
-  const phones = Array.from(pendingMessages.keys());
+  const keys = Array.from(pendingMessages.keys());
 
-  for (const phone of phones) {
-    const pending = pendingMessages.get(phone);
+  for (const key of keys) {
+    const pending = pendingMessages.get(key);
     if (pending) {
       clearTimeout(pending.timer);
-      await flushMessages(phone);
+      await flushMessages(key);
     }
   }
 }
