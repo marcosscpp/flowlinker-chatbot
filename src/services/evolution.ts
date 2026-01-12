@@ -141,24 +141,23 @@ export function getAudioInfo(message: any): {
 /**
  * Busca o base64 de uma mídia (áudio, imagem, etc) via Evolution API
  * Usa o endpoint /chat/getBase64FromMediaMessage
+ *
+ * IMPORTANTE: O Evolution API espera o WebMessageInfo completo,
+ * incluindo a key E o message com os dados da mídia (mediaKey, url, etc)
  */
 export async function getBase64FromMediaMessage(
-  messageId: string,
-  remoteJid: string,
-  fromMe: boolean = false
+  key: { id: string; remoteJid: string; fromMe: boolean },
+  message: any
 ): Promise<{ base64: string; mimetype: string } | null> {
   try {
-    console.log(`[Evolution] Buscando base64 para mensagem ${messageId}...`);
+    console.log(`[Evolution] Buscando base64 para mensagem ${key.id}...`);
 
     const response = await api.post(
       `/chat/getBase64FromMediaMessage/${env.evolutionInstance}`,
       {
         message: {
-          key: {
-            remoteJid,
-            fromMe,
-            id: messageId,
-          },
+          key,
+          message,
         },
         convertToMp4: false,
       }
@@ -174,12 +173,18 @@ export async function getBase64FromMediaMessage(
       };
     }
 
-    console.log("[Evolution] Resposta sem base64:", JSON.stringify(response.data));
+    console.log(
+      "[Evolution] Resposta sem base64:",
+      JSON.stringify(response.data)
+    );
     return null;
   } catch (error: any) {
     console.error("[Evolution] Erro ao buscar base64:", error.message);
     if (error.response?.data) {
-      console.error("[Evolution] Detalhes:", JSON.stringify(error.response.data));
+      console.error(
+        "[Evolution] Detalhes:",
+        JSON.stringify(error.response.data)
+      );
     }
     return null;
   }
