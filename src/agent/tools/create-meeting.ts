@@ -102,10 +102,24 @@ export const createMeetingTool = tool(
 
       // Notifica vendedor imediatamente (se tiver phone cadastrado e link)
       if (result.sellerPhone && result.meetLink) {
+        // Formata população
+        const populacaoFormatada = clientCityPopulation
+          ? `${clientCityPopulation.toLocaleString("pt-BR")} hab.`
+          : null;
+
+        // Monta localização
+        const localizacao =
+          clientCity && clientState
+            ? `${clientCity}/${clientState}${populacaoFormatada ? ` (${populacaoFormatada})` : ""}`
+            : clientCity || null;
+
         const sellerMsg =
           `📅 Nova reuniao agendada\n\n` +
           `Cliente: ${clientName || clientPhone}\n` +
-          `Data: ${start.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}\n` +
+          `Telefone: ${clientPhone}\n` +
+          (clientSegment ? `Segmento: ${clientSegment}\n` : "") +
+          (localizacao ? `Cidade: ${localizacao}\n` : "") +
+          `\nData: ${start.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}\n` +
           `Horario: ${start.toLocaleTimeString("pt-BR", {
             hour: "2-digit",
             minute: "2-digit",
@@ -115,7 +129,6 @@ export const createMeetingTool = tool(
             minute: "2-digit",
             timeZone: "America/Sao_Paulo",
           })}\n` +
-          (subject ? `Assunto: ${subject}\n` : "") +
           `\nLink: ${result.meetLink}`;
 
         try {

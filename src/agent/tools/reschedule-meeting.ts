@@ -4,6 +4,7 @@ import * as meetingService from "../../services/meeting.js";
 import * as evolutionService from "../../services/evolution.js";
 import { createBrasiliaDate } from "../../services/calendar.js";
 import { getDefaultInstance } from "../../config/instances.js";
+import { prisma } from "../../database/client.js";
 
 export const rescheduleMeetingTool = tool(
   async ({ oldMeetingId, date, startTime }) => {
@@ -22,6 +23,11 @@ export const rescheduleMeetingTool = tool(
         });
       }
 
+      // Busca dados da reunião antiga para notificação
+      const oldMeeting = await prisma.meeting.findUnique({
+        where: { id: oldMeetingId },
+      });
+
       const result = await meetingService.rescheduleMeeting({
         oldMeetingId,
         newStartTime: start,
@@ -38,7 +44,9 @@ export const rescheduleMeetingTool = tool(
         const end = new Date(start.getTime() + 30 * 60 * 1000);
         const sellerMsg =
           `🔁 Reuniao remarcada\n\n` +
-          `Data: ${start.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}\n` +
+          `Cliente: ${oldMeeting?.clientName || oldMeeting?.clientPhone || "Nao informado"}\n` +
+          `Telefone: ${oldMeeting?.clientPhone || "Nao informado"}\n` +
+          `\nData: ${start.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}\n` +
           `Horario: ${start.toLocaleTimeString("pt-BR", {
             hour: "2-digit",
             minute: "2-digit",
