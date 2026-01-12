@@ -3,6 +3,7 @@ import { z } from "zod";
 import * as meetingService from "../../services/meeting.js";
 import * as evolutionService from "../../services/evolution.js";
 import { createBrasiliaDate } from "../../services/calendar.js";
+import { getDefaultInstance } from "../../config/instances.js";
 
 export const rescheduleMeetingTool = tool(
   async ({ oldMeetingId, date, startTime }) => {
@@ -48,7 +49,8 @@ export const rescheduleMeetingTool = tool(
           })}\n` +
           `\nLink: ${newMeeting.meetLink}`;
 
-        await evolutionService.sendText(newMeeting.sellerPhone, sellerMsg);
+        const instance = getDefaultInstance();
+        await evolutionService.sendText(instance, newMeeting.sellerPhone, sellerMsg);
       }
 
       const formattedDate = start.toLocaleDateString("pt-BR");

@@ -22,9 +22,19 @@ export function isValidInstance(name: string): boolean {
   return instances.some((i) => i.name === name);
 }
 
-/**ve
+/**
  * Retorna lista de nomes das instâncias
  */
 export function getInstanceNames(): string[] {
   return instances.map((i) => i.name);
+}
+
+/**
+ * Retorna a instância padrão para notificações do sistema (primeira configurada)
+ */
+export function getDefaultInstance(): string {
+  if (instances.length === 0) {
+    throw new Error("Nenhuma instância configurada em instances.ts");
+  }
+  return instances[0].name;
 }

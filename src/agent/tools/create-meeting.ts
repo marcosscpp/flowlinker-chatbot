@@ -1,8 +1,10 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import * as meetingService from "../../services/meeting.js";
+import * as evolutionService from "../../services/evolution.js";
 import { prisma } from "../../database/client.js";
 import { createBrasiliaDate } from "../../services/calendar.js";
+import { getDefaultInstance } from "../../config/instances.js";
 
 export const createMeetingTool = tool(
   async ({
@@ -96,6 +98,30 @@ export const createMeetingTool = tool(
           success: false,
           error: result.error,
         });
+      }
+
+      // Notifica vendedor imediatamente (se tiver phone cadastrado e link)
+      if (result.sellerPhone && result.meetLink) {
+        const sellerMsg =
+          `📅 Nova reuniao agendada\n\n` +
+          `Cliente: ${clientName || clientPhone}\n` +
+          `Data: ${start.toLocaleDateString("pt-BR")}\n` +
+          `Horario: ${start.toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })} - ${end.toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}\n` +
+          (subject ? `Assunto: ${subject}\n` : "") +
+          `\nLink: ${result.meetLink}`;
+
+        try {
+          const instance = getDefaultInstance();
+          await evolutionService.sendText(instance, result.sellerPhone, sellerMsg);
+        } catch (err) {
+          console.error("Erro ao notificar vendedor:", err);
+        }
       }
 
       const formattedDate = start.toLocaleDateString("pt-BR");
