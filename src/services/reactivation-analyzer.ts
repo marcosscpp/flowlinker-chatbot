@@ -137,7 +137,8 @@ export async function analyzeConversation(
     };
   }
 
-  const messages = (log.messages as Array<{ role: string; content: string }>) || [];
+  const messages =
+    (log.messages as Array<{ role: string; content: string }>) || [];
 
   if (messages.length === 0) {
     return {
@@ -164,7 +165,9 @@ export async function analyzeConversation(
       shouldReactivate: false,
       reactivationMessage: null,
       discardReason: "Cliente já tem reunião agendada",
-      summary: `Reunião agendada para ${hasMeeting.startTime.toLocaleDateString("pt-BR")}`,
+      summary: `Reunião agendada para ${hasMeeting.startTime.toLocaleDateString(
+        "pt-BR"
+      )}`,
     };
   }
 
@@ -191,20 +194,23 @@ export async function analyzeConversation(
     month: "long",
     day: "numeric",
   });
-  
-  const prompt = ANALYSIS_PROMPT
-    .replace(/{currentDate}/g, currentDate)
+
+  const prompt = ANALYSIS_PROMPT.replace(/{currentDate}/g, currentDate)
     .replace("{attemptNumber}", attemptNumber.toString())
     .replace("{conversationHistory}", historyText);
 
   try {
     const response = await analyzerModel.invoke(prompt);
-    const content = typeof response.content === "string"
-      ? response.content
-      : JSON.stringify(response.content);
+    const content =
+      typeof response.content === "string"
+        ? response.content
+        : JSON.stringify(response.content);
 
     // Remove possíveis backticks de markdown
-    const cleanJson = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const cleanJson = content
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
 
     const analysis = JSON.parse(cleanJson) as ConversationAnalysis;
 
@@ -220,7 +226,10 @@ export async function analyzeConversation(
 
     return analysis;
   } catch (error) {
-    console.error(`[ReactivationAnalyzer] Erro ao analisar conversa ${phone}:`, error);
+    console.error(
+      `[ReactivationAnalyzer] Erro ao analisar conversa ${phone}:`,
+      error
+    );
     return {
       stage: "unknown",
       shouldReactivate: false,
@@ -238,14 +247,20 @@ export async function findContactsToReactivate(
   inactiveDays: number = 2,
   maxAttempts: number = 3,
   limit: number = 50
-): Promise<Array<{
-  id: string;
-  phone: string;
-  lastContactAt: Date;
-  reactivationAttempts: number;
-}>> {
+): Promise<
+  Array<{
+    id: string;
+    phone: string;
+    lastContactAt: Date;
+    reactivationAttempts: number;
+  }>
+> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - inactiveDays);
+
+  // Não reativa se já foi reativado nas últimas 24h (cooldown entre tentativas)
+  const reactivationCooldown = new Date();
+  reactivationCooldown.setHours(reactivationCooldown.getHours() - 24);
 
   const contacts = await prisma.conversationLog.findMany({
     where: {
@@ -259,6 +274,11 @@ export async function findContactsToReactivate(
       reactivationAttempts: { lt: maxAttempts },
       // Bot não está desabilitado (não foi transferido)
       disabled: false,
+      // Não foi reativado nas últimas 24h (cooldown)
+      OR: [
+        { lastReactivationAt: null },
+        { lastReactivationAt: { lt: reactivationCooldown } },
+      ],
     },
     select: {
       id: true,
@@ -285,7 +305,9 @@ export async function findContactsToReactivate(
     select: { clientPhone: true },
   });
 
-  const phonesWithMeetingsSet = new Set(phonesWithMeetings.map((m) => m.clientPhone));
+  const phonesWithMeetingsSet = new Set(
+    phonesWithMeetings.map((m) => m.clientPhone)
+  );
 
   return contacts.filter((c) => !phonesWithMeetingsSet.has(c.phone));
 }
