@@ -14,6 +14,7 @@ import * as queueService from "./services/queue.js";
 import * as evolutionService from "./services/evolution.js";
 import { processMessage } from "./agent/index.js";
 import { prisma } from "./database/client.js";
+import { cancelPendingReactivations } from "./services/reactivation.js";
 
 /**
  * Verifica se o bot está desabilitado para este telefone
@@ -41,6 +42,32 @@ async function setBotDisabled(phone: string, disabled: boolean): Promise<void> {
   });
 }
 
+/**
+ * Atualiza status da conversa para ACTIVE e cancela reativações pendentes
+ */
+async function onClientResponse(phone: string): Promise<void> {
+  try {
+    // Cancela mensagens de reativação pendentes (cliente respondeu)
+    const cancelled = await cancelPendingReactivations(phone);
+    if (cancelled > 0) {
+      console.log(`[Worker] ${cancelled} reativação(ões) pendente(s) cancelada(s) para ${phone}`);
+    }
+
+    // Atualiza status para ACTIVE (cliente está respondendo)
+    await prisma.conversationLog.updateMany({
+      where: {
+        phone,
+        conversationStatus: { in: ["INACTIVE", "REACTIVATING"] },
+      },
+      data: {
+        conversationStatus: "ACTIVE",
+      },
+    });
+  } catch (err) {
+    console.error(`[Worker] Erro ao processar resposta do cliente ${phone}:`, err);
+  }
+}
+
 async function handleMessage(data: {
   instance: string;
   phone: string;
@@ -58,6 +85,9 @@ async function handleMessage(data: {
       30
     )}..."`
   );
+
+  // Atualiza status e cancela reativações pendentes (cliente respondeu)
+  await onClientResponse(phone);
 
   // Comando "." → Desabilita o bot
   if (trimmedText === ".") {

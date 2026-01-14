@@ -5,6 +5,7 @@ import * as evolutionService from "../../services/evolution.js";
 import { prisma } from "../../database/client.js";
 import { createBrasiliaDate } from "../../services/calendar.js";
 import { getDefaultInstance } from "../../config/instances.js";
+import { markAsConverted } from "../../services/reactivation-analyzer.js";
 
 export const createMeetingTool = tool(
   async ({
@@ -98,6 +99,13 @@ export const createMeetingTool = tool(
           success: false,
           error: result.error,
         });
+      }
+
+      // Marca contato como convertido (agendou reunião)
+      try {
+        await markAsConverted(clientPhone);
+      } catch (err) {
+        console.error("Erro ao marcar contato como convertido:", err);
       }
 
       // Notifica vendedor imediatamente (se tiver phone cadastrado e link)

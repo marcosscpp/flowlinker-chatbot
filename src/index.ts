@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { env } from "./config/env.js";
 import { webhookRouter } from "./webhook/evolution.js";
+import { reactivationRouter } from "./routes/reactivation.js";
 import * as queueService from "./services/queue.js";
 import * as debounceService from "./services/debounce.js";
 
@@ -18,6 +19,9 @@ app.use((req, _res, next) => {
 
 // Rotas do webhook
 app.use("/webhook", webhookRouter);
+
+// Rotas de reativação (para cronjob)
+app.use("/reactivation", reactivationRouter);
 
 // Health check geral
 app.get("/health", async (_req, res) => {
@@ -44,6 +48,13 @@ app.get("/", (_req, res) => {
     endpoints: {
       webhook: "/webhook/messages-upsert",
       health: "/health",
+      reactivation: {
+        run: "POST /reactivation/run - Ciclo completo (envio + análise)",
+        analyze: "POST /reactivation/analyze - Apenas analisa e enfileira",
+        send: "POST /reactivation/send - Apenas processa fila de envio",
+        stats: "GET /reactivation/stats - Estatísticas",
+        health: "GET /reactivation/health - Health check",
+      },
     },
   });
 });

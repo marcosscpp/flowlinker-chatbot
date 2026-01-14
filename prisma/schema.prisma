@@ -51,8 +51,55 @@ model ConversationLog {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Campos para controle de reativação
+  conversationStatus ConversationStatus @default(ACTIVE)
+  stage              String?            // Estágio da conversa identificado pela IA
+  reactivationAttempts Int @default(0)  // Quantas vezes tentamos reativar
+  lastReactivationAt DateTime?          // Última tentativa de reativação
+  discardReason      String?            // Motivo do descarte (se aplicável)
+
+  reactivationQueue ReactivationQueue[]
+
   @@index([phone])
   @@index([lastContactAt])
+  @@index([conversationStatus])
+}
+
+enum ConversationStatus {
+  ACTIVE       // Conversa ativa, cliente respondendo
+  INACTIVE     // Cliente parou de responder
+  REACTIVATING // Em processo de reativação
+  CONVERTED    // Cliente agendou reunião
+  DISCARDED    // Descartado (sem interesse, muitas tentativas, etc)
+}
+
+enum ReactivationStatus {
+  PENDING   // Aguardando envio
+  SENT      // Enviada com sucesso
+  FAILED    // Falhou ao enviar
+  CANCELLED // Cancelada (ex: cliente respondeu antes do envio)
+}
+
+// Fila de mensagens de reativação para envio parcelado
+model ReactivationQueue {
+  id          String   @id @default(uuid())
+  phone       String
+  message     String   @db.Text // Mensagem a ser enviada
+  instance    String   // Instância do Evolution API
+  priority    Int      @default(0) // Prioridade (maior = mais urgente)
+  scheduledAt DateTime // Quando deve ser enviada
+  sentAt      DateTime? // Quando foi enviada (null = pendente)
+  status      ReactivationStatus @default(PENDING)
+  errorMessage String? // Mensagem de erro se falhou
+  attempt     Int      @default(1) // Qual tentativa de reativação é esta
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  conversationLog   ConversationLog @relation(fields: [conversationLogId], references: [id])
+  conversationLogId String
+
+  @@index([status, scheduledAt])
+  @@index([phone])
 }
 
 enum MeetingStatus {
