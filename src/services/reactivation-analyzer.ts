@@ -43,6 +43,9 @@ export interface ConversationAnalysis {
 const ANALYSIS_PROMPT = `Você é um analisador de conversas de vendas.
 Analise o histórico de conversa abaixo entre um lead e o bot de atendimento da Flowlinker (software de automação para redes sociais).
 
+## SOBRE A FLOWLINKER
+A Flowlinker é um software de automação para redes sociais. Por estratégia de mercado, trabalhamos com VAGAS LIMITADAS POR CIDADE, garantindo exclusividade e melhores resultados para cada cliente. Por isso pedimos a cidade do lead logo no início.
+
 ## DATA ATUAL
 Hoje é {currentDate}. Use esta informação para verificar se datas mencionadas na conversa já passaram.
 
@@ -88,10 +91,10 @@ Se shouldReactivate = true, gere uma mensagem personalizada:
 - IMPORTANTE: Se o lead escolheu uma data que JÁ PASSOU (anterior a {currentDate}), NÃO mencione essa data. Pergunte por uma nova data disponível.
 
 Exemplos por estágio:
-- greeting: "Oi! Vi que conversamos há alguns dias. Ainda posso te ajudar a conhecer a Flowlinker?"
-- city_collected: "Oi [nome se tiver]! Você me passou sua cidade mas não conseguimos finalizar. Ainda quer saber das vagas disponíveis na sua região?"
+- greeting: "Oi! Vi que você demonstrou interesse na Flowlinker, mas não conseguimos verificar a disponibilidade na sua região. Pode me informar sua cidade?"
+- city_collected: "Oi! Verificamos que ainda temos vagas disponíveis na sua região, mas não finalizamos o cadastro. Você pretende usar a Flowlinker para negócios, posicionamento pessoal ou político?"
 - segment_collected: "Oi! Lembro que você se interessou pela Flowlinker para [segmento]. Posso verificar os horários disponíveis para sua demonstração?"
-- day_selected (data futura): "Oi! Vi que você tinha escolhido o dia [dia] para sua demonstração mas não finalizamos. Ainda está disponível nessa data?"
+- day_selected (data futura): "Oi! Vi que você tinha escolhido o dia [dia] para sua demonstração mas não finalizamos o horário. Ainda está disponível nessa data?"
 - day_selected (data passada): "Oi! Vi que não conseguimos finalizar o agendamento da sua demonstração. Qual dia seria melhor para você esta semana?"
 - objection: "Oi! Tudo bem? Só passando para ver se surgiu alguma dúvida sobre a Flowlinker. Estou à disposição!"
 - meeting_cancelled: "Oi! Vi que sua reunião foi cancelada. Gostaria de reagendar para outra data?"
