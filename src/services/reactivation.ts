@@ -24,7 +24,7 @@ export interface ReactivationConfig {
 const DEFAULT_CONFIG: ReactivationConfig = {
   inactiveDays: 2,
   maxAttempts: 3,
-  dailyLimit: 50,
+  dailyLimit: 60,
   delayBetweenMessages: 45000, // 45 segundos
   instance: getDefaultInstance(),
 };

@@ -27,7 +27,7 @@ services:
       - key: REACTIVATION_MAX_ATTEMPTS
         value: "3"
       - key: REACTIVATION_DAILY_LIMIT
-        value: "50"
+        value: "60"
       - key: REACTIVATION_DELAY_MS
         value: "45000"
 
