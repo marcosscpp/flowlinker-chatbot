@@ -95,7 +95,9 @@ export async function queueReactivation(
  * Cancela mensagens pendentes para um telefone
  * (usado quando o contato responde antes do envio)
  */
-export async function cancelPendingReactivations(phone: string): Promise<number> {
+export async function cancelPendingReactivations(
+  phone: string
+): Promise<number> {
   const result = await prisma.reactivationQueue.updateMany({
     where: {
       phone,
@@ -144,7 +146,9 @@ export async function analyzeAndQueueContacts(
   const remainingLimit = cfg.dailyLimit - todayCount;
 
   if (remainingLimit <= 0) {
-    console.log("[Reactivation] Limite diário atingido, nenhum contato será processado");
+    console.log(
+      "[Reactivation] Limite diário atingido, nenhum contato será processado"
+    );
     return result;
   }
 
@@ -155,7 +159,9 @@ export async function analyzeAndQueueContacts(
     remainingLimit
   );
 
-  console.log(`[Reactivation] ${contacts.length} contatos elegíveis encontrados`);
+  console.log(
+    `[Reactivation] ${contacts.length} contatos elegíveis encontrados`
+  );
 
   // Analisa e enfileira cada contato
   for (const contact of contacts) {
@@ -167,7 +173,9 @@ export async function analyzeAndQueueContacts(
         contact.reactivationAttempts + 1
       );
 
-      console.log(`[Reactivation] ${contact.phone}: stage=${analysis.stage}, shouldReactivate=${analysis.shouldReactivate}`);
+      console.log(
+        `[Reactivation] ${contact.phone}: stage=${analysis.stage}, shouldReactivate=${analysis.shouldReactivate}`
+      );
 
       if (!analysis.shouldReactivate) {
         // Descarta o contato
@@ -215,14 +223,16 @@ export async function analyzeAndQueueContacts(
           action: "skipped",
           reason: "Já está na fila de reativação pendente",
         });
-        console.log(`[Reactivation] ${contact.phone}: pulado - já está na fila pendente`);
+        console.log(
+          `[Reactivation] ${contact.phone}: pulado - já está na fila pendente`
+        );
         continue;
       }
 
       // Calcula horário de envio com base na posição na fila
       const scheduledAt = new Date();
       scheduledAt.setMilliseconds(
-        scheduledAt.getMilliseconds() + (result.queued * cfg.delayBetweenMessages)
+        scheduledAt.getMilliseconds() + result.queued * cfg.delayBetweenMessages
       );
 
       // Adiciona à fila
@@ -248,7 +258,10 @@ export async function analyzeAndQueueContacts(
         reason: `Estágio: ${analysis.stage}. Mensagem: ${analysis.reactivationMessage}`,
       });
     } catch (error) {
-      console.error(`[Reactivation] Erro ao processar ${contact.phone}:`, error);
+      console.error(
+        `[Reactivation] Erro ao processar ${contact.phone}:`,
+        error
+      );
       result.errors++;
       result.details.push({
         phone: contact.phone,
@@ -287,14 +300,13 @@ export async function processReactivationQueue(
       status: "PENDING",
       scheduledAt: { lte: now },
     },
-    orderBy: [
-      { priority: "desc" },
-      { scheduledAt: "asc" },
-    ],
+    orderBy: [{ priority: "desc" }, { scheduledAt: "asc" }],
     take: 10, // Processa em lotes pequenos
   });
 
-  console.log(`[Reactivation] ${pendingMessages.length} mensagens prontas para envio`);
+  console.log(
+    `[Reactivation] ${pendingMessages.length} mensagens prontas para envio`
+  );
 
   for (const msg of pendingMessages) {
     try {
@@ -312,12 +324,30 @@ export async function processReactivationQueue(
             errorMessage: "Contato respondeu antes do envio",
           },
         });
-        console.log(`[Reactivation] ${msg.phone}: cancelado - contato já respondeu`);
+        console.log(
+          `[Reactivation] ${msg.phone}: cancelado - contato já respondeu`
+        );
         continue;
       }
 
       // Envia a mensagem
       await sendText(msg.instance, msg.phone, msg.message);
+
+      // Salva a mensagem de reativação no histórico da conversa
+      if (conversationLog) {
+        const messages = (conversationLog.messages as Array<{ role: string; content: string }>) || [];
+        messages.push({ role: "assistant", content: msg.message });
+
+        // Limita a 20 mensagens
+        const limitedMessages = messages.slice(-20);
+
+        await prisma.conversationLog.update({
+          where: { phone: msg.phone },
+          data: {
+            messages: limitedMessages as any,
+          },
+        });
+      }
 
       // Marca como enviada
       await prisma.reactivationQueue.update({
@@ -351,7 +381,8 @@ export async function processReactivationQueue(
         where: { id: msg.id },
         data: {
           status: "FAILED",
-          errorMessage: error instanceof Error ? error.message : "Erro desconhecido",
+          errorMessage:
+            error instanceof Error ? error.message : "Erro desconhecido",
         },
       });
 
@@ -409,22 +440,27 @@ export async function getReactivationStats(): Promise<{
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [pendingQueue, sentToday, failedToday, contactsReactivated, contactsDiscarded] =
-    await Promise.all([
-      prisma.reactivationQueue.count({ where: { status: "PENDING" } }),
-      prisma.reactivationQueue.count({
-        where: { status: "SENT", sentAt: { gte: today } },
-      }),
-      prisma.reactivationQueue.count({
-        where: { status: "FAILED", updatedAt: { gte: today } },
-      }),
-      prisma.conversationLog.count({
-        where: { conversationStatus: "REACTIVATING" },
-      }),
-      prisma.conversationLog.count({
-        where: { conversationStatus: "DISCARDED" },
-      }),
-    ]);
+  const [
+    pendingQueue,
+    sentToday,
+    failedToday,
+    contactsReactivated,
+    contactsDiscarded,
+  ] = await Promise.all([
+    prisma.reactivationQueue.count({ where: { status: "PENDING" } }),
+    prisma.reactivationQueue.count({
+      where: { status: "SENT", sentAt: { gte: today } },
+    }),
+    prisma.reactivationQueue.count({
+      where: { status: "FAILED", updatedAt: { gte: today } },
+    }),
+    prisma.conversationLog.count({
+      where: { conversationStatus: "REACTIVATING" },
+    }),
+    prisma.conversationLog.count({
+      where: { conversationStatus: "DISCARDED" },
+    }),
+  ]);
 
   return {
     pendingQueue,
