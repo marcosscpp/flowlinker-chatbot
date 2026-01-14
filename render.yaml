@@ -2,6 +2,35 @@
 # Documentação: https://render.com/docs/blueprint-spec
 
 services:
+  # Cron Job de Reativação (roda 3x por dia: 10h, 14h, 18h horário de Brasília)
+  - type: cron
+    name: chatbot-reactivation
+    runtime: node
+    region: oregon
+    plan: starter
+    schedule: "0 13,17,21 * * *"  # UTC (13h=10h BRT, 17h=14h BRT, 21h=18h BRT)
+    buildCommand: npm install && npx prisma generate
+    startCommand: npx tsx scripts/reactivation-cronjob.ts
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: EVOLUTION_API_URL
+        sync: false
+      - key: EVOLUTION_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: REACTIVATION_INACTIVE_DAYS
+        value: "2"
+      - key: REACTIVATION_MAX_ATTEMPTS
+        value: "3"
+      - key: REACTIVATION_DAILY_LIMIT
+        value: "50"
+      - key: REACTIVATION_DELAY_MS
+        value: "45000"
+
   # Servidor principal (recebe webhooks)
   - type: web
     name: chatbot-server
