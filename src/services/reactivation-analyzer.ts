@@ -43,6 +43,9 @@ export interface ConversationAnalysis {
 const ANALYSIS_PROMPT = `Você é um analisador de conversas de vendas.
 Analise o histórico de conversa abaixo entre um lead e o bot de atendimento da Flowlinker (software de automação para redes sociais).
 
+## DATA ATUAL
+Hoje é {currentDate}. Use esta informação para verificar se datas mencionadas na conversa já passaram.
+
 ## OBJETIVO
 1. Identificar em qual ESTÁGIO a conversa parou
 2. Decidir se devemos REATIVAR este contato
@@ -82,12 +85,14 @@ Se shouldReactivate = true, gere uma mensagem personalizada:
 - Use tom amigável e profissional
 - NÃO use emojis
 - Se foi objeção, não mencione diretamente a objeção
+- IMPORTANTE: Se o lead escolheu uma data que JÁ PASSOU (anterior a {currentDate}), NÃO mencione essa data. Pergunte por uma nova data disponível.
 
 Exemplos por estágio:
 - greeting: "Oi! Vi que conversamos há alguns dias. Ainda posso te ajudar a conhecer a Flowlinker?"
 - city_collected: "Oi [nome se tiver]! Você me passou sua cidade mas não conseguimos finalizar. Ainda quer saber das vagas disponíveis na sua região?"
 - segment_collected: "Oi! Lembro que você se interessou pela Flowlinker para [segmento]. Posso verificar os horários disponíveis para sua demonstração?"
-- day_selected: "Oi! Vi que você tinha escolhido o dia [dia] para sua demonstração mas não finalizamos. Ainda está disponível nessa data?"
+- day_selected (data futura): "Oi! Vi que você tinha escolhido o dia [dia] para sua demonstração mas não finalizamos. Ainda está disponível nessa data?"
+- day_selected (data passada): "Oi! Vi que não conseguimos finalizar o agendamento da sua demonstração. Qual dia seria melhor para você esta semana?"
 - objection: "Oi! Tudo bem? Só passando para ver se surgiu alguma dúvida sobre a Flowlinker. Estou à disposição!"
 - meeting_cancelled: "Oi! Vi que sua reunião foi cancelada. Gostaria de reagendar para outra data?"
 - unresponsive: "Oi! Passando para ver se ainda tem interesse em conhecer a Flowlinker. Posso te ajudar com alguma dúvida?"
@@ -177,7 +182,15 @@ export async function analyzeConversation(
     .join("\n");
 
   // Chama IA para análise
+  const currentDate = new Date().toLocaleDateString("pt-BR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  
   const prompt = ANALYSIS_PROMPT
+    .replace(/{currentDate}/g, currentDate)
     .replace("{attemptNumber}", attemptNumber.toString())
     .replace("{conversationHistory}", historyText);
 

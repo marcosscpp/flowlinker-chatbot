@@ -200,6 +200,25 @@ export async function analyzeAndQueueContacts(
         continue;
       }
 
+      // Verifica se o contato já está na fila pendente (evita duplicatas)
+      const existingInQueue = await prisma.reactivationQueue.findFirst({
+        where: {
+          phone: contact.phone,
+          status: "PENDING",
+        },
+      });
+
+      if (existingInQueue) {
+        result.skipped++;
+        result.details.push({
+          phone: contact.phone,
+          action: "skipped",
+          reason: "Já está na fila de reativação pendente",
+        });
+        console.log(`[Reactivation] ${contact.phone}: pulado - já está na fila pendente`);
+        continue;
+      }
+
       // Calcula horário de envio com base na posição na fila
       const scheduledAt = new Date();
       scheduledAt.setMilliseconds(
