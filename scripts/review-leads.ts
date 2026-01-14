@@ -1,14 +1,13 @@
 /**
- * Script interativo para revisar e corrigir status dos leads
+ * Script automático para classificar e corrigir status dos leads
  *
- * Mostra cada conversa, a análise do GPT, e permite aprovar ou recusar a sugestão.
+ * Analisa todos os leads com IA e atualiza automaticamente no banco.
  *
  * Uso:
  *   npx tsx scripts/review-leads.ts
  */
 
 import "dotenv/config";
-import * as readline from "readline";
 import { ChatOpenAI } from "@langchain/openai";
 import { prisma } from "../src/database/client.js";
 import { env } from "../src/config/env.js";
@@ -19,20 +18,6 @@ const analyzerModel = new ChatOpenAI({
   temperature: 0,
   apiKey: env.openaiApiKey,
 });
-
-// Interface para input do usuário
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
-function ask(question: string): Promise<string> {
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      resolve(answer.trim().toLowerCase());
-    });
-  });
-}
 
 // Prompt para análise de status
 const STATUS_ANALYSIS_PROMPT = `Analise esta conversa de um lead com o bot da Flowlinker e determine o STATUS correto.
@@ -126,8 +111,8 @@ async function analyzeLeadStatus(
 function formatConversation(messages: Array<{ role: string; content: string }>): string {
   return messages
     .map((m) => {
-      const role = m.role === "user" ? "👤 Lead" : "🤖 Bot";
-      const content = m.content.length > 200 ? m.content.substring(0, 200) + "..." : m.content;
+      const role = m.role === "user" ? "Lead" : "Bot";
+      const content = m.content.length > 300 ? m.content.substring(0, 300) + "..." : m.content;
       return `${role}: ${content}`;
     })
     .join("\n");
@@ -135,7 +120,7 @@ function formatConversation(messages: Array<{ role: string; content: string }>):
 
 async function main() {
   console.log("=".repeat(70));
-  console.log("REVISÃO DE STATUS DOS LEADS");
+  console.log("CLASSIFICAÇÃO AUTOMÁTICA DE LEADS");
   console.log("=".repeat(70));
   console.log("\nBuscando leads do banco...\n");
 
@@ -155,102 +140,102 @@ async function main() {
   const phonesWithMeetings = new Set(meetings.map((m) => m.clientPhone));
 
   console.log(`Total de leads: ${leads.length}`);
-  console.log(`Leads com reunião agendada: ${phonesWithMeetings.size}`);
-  console.log("\n" + "-".repeat(70) + "\n");
+  console.log(`Leads com reunião agendada: ${phonesWithMeetings.size}\n`);
 
   let updated = 0;
+  let unchanged = 0;
   let skipped = 0;
-  let reviewed = 0;
+  let errors = 0;
 
-  for (const lead of leads) {
-    reviewed++;
+  const changes: Array<{
+    phone: string;
+    oldStatus: string;
+    newStatus: string;
+    stage: string;
+    reason: string;
+  }> = [];
+
+  for (let i = 0; i < leads.length; i++) {
+    const lead = leads[i];
     const hasMeeting = phonesWithMeetings.has(lead.phone);
     const messages = (lead.messages as Array<{ role: string; content: string }>) || [];
 
+    process.stdout.write(`\r[${i + 1}/${leads.length}] Analisando ${lead.phone}...`);
+
     if (messages.length === 0) {
-      console.log(`[${reviewed}/${leads.length}] ${lead.phone}: Sem histórico, pulando...\n`);
       skipped++;
       continue;
     }
 
-    console.log("=".repeat(70));
-    console.log(`LEAD ${reviewed}/${leads.length}`);
-    console.log("=".repeat(70));
-    console.log(`📱 Telefone: ${lead.phone}`);
-    console.log(`📅 Última interação: ${lead.lastContactAt.toLocaleString("pt-BR")}`);
-    console.log(`📊 Status atual: ${lead.conversationStatus}`);
-    console.log(`🔄 Tentativas de reativação: ${lead.reactivationAttempts}`);
-    console.log(`📆 Tem reunião agendada: ${hasMeeting ? "SIM ✅" : "NÃO"}`);
-    console.log(`🚫 Bot desabilitado: ${lead.disabled ? "SIM" : "NÃO"}`);
-    console.log("\n--- CONVERSA ---\n");
-    console.log(formatConversation(messages));
-    console.log("\n--- ANALISANDO COM IA... ---\n");
+    try {
+      const analysis = await analyzeLeadStatus(
+        lead.phone,
+        formatConversation(messages),
+        lead.lastContactAt,
+        hasMeeting,
+        lead.disabled,
+        lead.reactivationAttempts,
+        lead.conversationStatus
+      );
 
-    const analysis = await analyzeLeadStatus(
-      lead.phone,
-      formatConversation(messages),
-      lead.lastContactAt,
-      hasMeeting,
-      lead.disabled,
-      lead.reactivationAttempts,
-      lead.conversationStatus
-    );
+      const statusChanged = analysis.suggestedStatus !== lead.conversationStatus;
+      const stageChanged = analysis.stage !== lead.stage;
 
-    console.log(`🤖 SUGESTÃO DA IA:`);
-    console.log(`   Status: ${lead.conversationStatus} → ${analysis.suggestedStatus}`);
-    console.log(`   Estágio: ${analysis.stage}`);
-    console.log(`   Motivo: ${analysis.reason}`);
+      if (statusChanged || stageChanged) {
+        // Atualiza no banco
+        await prisma.conversationLog.update({
+          where: { id: lead.id },
+          data: {
+            conversationStatus: analysis.suggestedStatus as any,
+            stage: analysis.stage,
+          },
+        });
 
-    const statusChanged = analysis.suggestedStatus !== lead.conversationStatus;
-    const stageChanged = analysis.stage !== lead.stage;
-
-    if (!statusChanged && !stageChanged) {
-      console.log("\n✅ Status já está correto, pulando...\n");
-      skipped++;
-      continue;
-    }
-
-    console.log("\n" + "-".repeat(40));
-    const answer = await ask(
-      `\n[S]im para APROVAR | [N]ão para RECUSAR | [P]ular este | [Q]uit para sair: `
-    );
-
-    if (answer === "q" || answer === "quit") {
-      console.log("\nEncerrando revisão...");
-      break;
-    }
-
-    if (answer === "p" || answer === "pular") {
-      console.log("Pulado.\n");
-      skipped++;
-      continue;
-    }
-
-    if (answer === "s" || answer === "sim" || answer === "y" || answer === "yes") {
-      // Atualiza no banco
-      await prisma.conversationLog.update({
-        where: { id: lead.id },
-        data: {
-          conversationStatus: analysis.suggestedStatus as any,
+        changes.push({
+          phone: lead.phone,
+          oldStatus: lead.conversationStatus,
+          newStatus: analysis.suggestedStatus,
           stage: analysis.stage,
-        },
-      });
-      console.log(`\n✅ Atualizado: ${lead.conversationStatus} → ${analysis.suggestedStatus}\n`);
-      updated++;
-    } else {
-      console.log("Não atualizado.\n");
-      skipped++;
+          reason: analysis.reason,
+        });
+
+        updated++;
+      } else {
+        unchanged++;
+      }
+    } catch (error) {
+      errors++;
     }
   }
 
-  rl.close();
+  // Limpa a linha de progresso
+  console.log("\r" + " ".repeat(60) + "\r");
+
+  // Resumo
+  console.log("=".repeat(70));
+  console.log("RESUMO DA CLASSIFICAÇÃO");
+  console.log("=".repeat(70));
+  console.log(`✅ Atualizados: ${updated}`);
+  console.log(`⏸️  Sem alteração: ${unchanged}`);
+  console.log(`⏭️  Pulados (sem histórico): ${skipped}`);
+  console.log(`❌ Erros: ${errors}`);
+  console.log("");
+
+  if (changes.length > 0) {
+    console.log("=".repeat(70));
+    console.log("ALTERAÇÕES REALIZADAS");
+    console.log("=".repeat(70));
+
+    for (const change of changes) {
+      console.log(`\n📱 ${change.phone}`);
+      console.log(`   ${change.oldStatus} → ${change.newStatus}`);
+      console.log(`   Estágio: ${change.stage}`);
+      console.log(`   Motivo: ${change.reason}`);
+    }
+  }
 
   console.log("\n" + "=".repeat(70));
-  console.log("RESUMO DA REVISÃO");
-  console.log("=".repeat(70));
-  console.log(`Total revisado: ${reviewed}`);
-  console.log(`Atualizados: ${updated}`);
-  console.log(`Pulados/Recusados: ${skipped}`);
+  console.log("CLASSIFICAÇÃO FINALIZADA");
   console.log("=".repeat(70));
 
   process.exit(0);
@@ -258,6 +243,5 @@ async function main() {
 
 main().catch((error) => {
   console.error("Erro:", error);
-  rl.close();
   process.exit(1);
 });
