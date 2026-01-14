@@ -7,6 +7,7 @@ import {
   type ReactivationConfig,
 } from "../services/reactivation.js";
 import { getDefaultInstance } from "../config/instances.js";
+import { recoverAllInstances, recoverOfflineMessages } from "../services/offline-recovery.js";
 
 export const reactivationRouter = Router();
 
@@ -182,6 +183,50 @@ reactivationRouter.get("/health", async (_req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       status: "error",
+      error: error instanceof Error ? error.message : "Erro desconhecido",
+    });
+  }
+});
+
+/**
+ * POST /reactivation/recover-offline
+ * Recupera mensagens perdidas enquanto o WhatsApp estava offline
+ * Busca mensagens diretamente do Evolution API que não chegaram ao webhook
+ */
+reactivationRouter.post("/recover-offline", async (req: Request, res: Response) => {
+  console.log("[Reactivation API] POST /recover-offline iniciado");
+
+  try {
+    const hoursBack = parseInt(req.query.hoursBack as string || req.body?.hoursBack || "48", 10);
+    const instance = req.query.instance as string || req.body?.instance;
+
+    let results;
+    if (instance) {
+      // Recupera de uma instância específica
+      results = [await recoverOfflineMessages(instance, hoursBack)];
+    } else {
+      // Recupera de todas as instâncias
+      results = await recoverAllInstances(hoursBack);
+    }
+
+    const totals = {
+      chatsScanned: results.reduce((sum, r) => sum + r.chatsScanned, 0),
+      messagesFound: results.reduce((sum, r) => sum + r.messagesFound, 0),
+      messagesProcessed: results.reduce((sum, r) => sum + r.messagesProcessed, 0),
+      errors: results.reduce((sum, r) => sum + r.errors, 0),
+    };
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      hoursBack,
+      totals,
+      results,
+    });
+  } catch (error) {
+    console.error("[Reactivation API] Erro em /recover-offline:", error);
+    res.status(500).json({
+      success: false,
       error: error instanceof Error ? error.message : "Erro desconhecido",
     });
   }

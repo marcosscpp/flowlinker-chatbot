@@ -16,7 +16,9 @@
       "WebFetch(domain:docs.evoapicloud.com)",
       "WebFetch(domain:github.com)",
       "Bash(npm install:*)",
-      "Bash(npx prisma generate:*)"
+      "Bash(npx prisma generate:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:render.com)"
     ]
   }
 }

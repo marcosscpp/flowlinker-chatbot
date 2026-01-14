@@ -12,12 +12,13 @@
  * - REACTIVATION_DELAY_MS: Delay entre mensagens em ms (padrão: 45000)
  *
  * Uso:
- *   npx tsx scripts/reactivation-cronjob.ts [--analyze-only] [--send-only]
+ *   npx tsx scripts/reactivation-cronjob.ts [--analyze-only] [--send-only] [--recover-offline]
  *
  * Opções:
  *   --analyze-only: Apenas analisa e enfileira, não envia
  *   --send-only: Apenas processa a fila de envio
- *   (sem opção): Executa ciclo completo (envio + análise)
+ *   --recover-offline: Recupera mensagens perdidas enquanto offline (48h)
+ *   (sem opção): Executa ciclo completo (recuperação + envio + análise)
  */
 
 import "dotenv/config";
@@ -29,6 +30,7 @@ import {
   type ReactivationConfig,
 } from "../src/services/reactivation.js";
 import { getDefaultInstance } from "../src/config/instances.js";
+import { recoverAllInstances } from "../src/services/offline-recovery.js";
 
 // Configuração via environment ou padrões seguros
 const config: ReactivationConfig = {
@@ -55,6 +57,7 @@ async function main() {
   const args = process.argv.slice(2);
   const analyzeOnly = args.includes("--analyze-only");
   const sendOnly = args.includes("--send-only");
+  const recoverOffline = args.includes("--recover-offline");
 
   try {
     // Mostra estatísticas antes
@@ -67,7 +70,30 @@ async function main() {
     console.log(`  - Contatos descartados: ${statsBefore.contactsDiscarded}`);
     console.log("");
 
-    if (analyzeOnly) {
+    if (recoverOffline) {
+      // Apenas recupera mensagens offline
+      console.log("📥 Modo: APENAS RECUPERAÇÃO DE MENSAGENS OFFLINE");
+      const hoursBack = parseInt(process.env.RECOVERY_HOURS_BACK || "48", 10);
+      console.log(`  - Buscando mensagens das últimas ${hoursBack} horas\n`);
+
+      const results = await recoverAllInstances(hoursBack);
+
+      console.log("\n📋 Resultado da recuperação:");
+      for (const result of results) {
+        console.log(`\n  Instância: ${result.instance}`);
+        console.log(`    - Chats escaneados: ${result.chatsScanned}`);
+        console.log(`    - Mensagens encontradas: ${result.messagesFound}`);
+        console.log(`    - Mensagens processadas: ${result.messagesProcessed}`);
+        console.log(`    - Erros: ${result.errors}`);
+
+        if (result.details.length > 0) {
+          console.log("    Detalhes:");
+          result.details.forEach((d) => {
+            console.log(`      - ${d.phone}: ${d.messagesRecovered} mensagens recuperadas`);
+          });
+        }
+      }
+    } else if (analyzeOnly) {
       // Apenas analisa e enfileira
       console.log("🔍 Modo: APENAS ANÁLISE");
       const result = await analyzeAndQueueContacts(config);
@@ -107,7 +133,17 @@ async function main() {
       }
     } else {
       // Ciclo completo
-      console.log("🔄 Modo: CICLO COMPLETO (envio + análise)");
+      console.log("🔄 Modo: CICLO COMPLETO (recuperação + envio + análise)");
+
+      // 1. Primeiro recupera mensagens offline
+      console.log("\n📥 Etapa 1: Recuperação de mensagens offline");
+      const hoursBack = parseInt(process.env.RECOVERY_HOURS_BACK || "48", 10);
+      const recoveryResults = await recoverAllInstances(hoursBack);
+      const totalRecovered = recoveryResults.reduce((sum, r) => sum + r.messagesProcessed, 0);
+      console.log(`  - Mensagens recuperadas: ${totalRecovered}`);
+
+      // 2. Depois executa ciclo de reativação
+      console.log("\n📤 Etapa 2: Ciclo de reativação");
       const { analysis, sending } = await runReactivationCycle(config);
 
       console.log("\n📤 Resultado do envio:");
