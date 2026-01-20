@@ -36,8 +36,8 @@ import { recoverAllInstances } from "../src/services/offline-recovery.js";
 const config: ReactivationConfig = {
   inactiveDays: parseInt(process.env.REACTIVATION_INACTIVE_DAYS || "2", 10),
   maxAttempts: parseInt(process.env.REACTIVATION_MAX_ATTEMPTS || "3", 10),
-  dailyLimit: parseInt(process.env.REACTIVATION_DAILY_LIMIT || "60", 10),
-  delayBetweenMessages: parseInt(process.env.REACTIVATION_DELAY_MS || "45000", 10),
+  dailyLimit: parseInt(process.env.REACTIVATION_DAILY_LIMIT || "20", 10),
+  delayBetweenMessages: parseInt(process.env.REACTIVATION_DELAY_MS || "600000", 10),
   instance: process.env.REACTIVATION_INSTANCE || getDefaultInstance(),
 };
 

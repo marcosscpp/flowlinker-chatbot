@@ -51,6 +51,10 @@ model ConversationLog {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Campos para identificar origem do contato
+  firstContactInstance String?  // Instância/número que fez o primeiro contato
+  lastContactInstance  String?  // Instância/número que fez o último contato
+
   // Campos para controle de reativação
   conversationStatus ConversationStatus @default(ACTIVE)
   stage              String?            // Estágio da conversa identificado pela IA

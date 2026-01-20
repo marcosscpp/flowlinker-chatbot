@@ -11,8 +11,9 @@ export interface EvolutionInstance {
 }
 
 export const instances: EvolutionInstance[] = [
-  { name: "flowlinker-chat1", description: "Número principal" },
   { name: "flowlinker-chat2", description: "Número secundário" },
+  { name: "flowlinker-chat1", description: "Número principal" },
+  { name: "flowlinker-planilhas", description: "Planilhas" },
 ];
 
 /**

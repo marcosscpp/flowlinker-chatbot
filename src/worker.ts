@@ -114,8 +114,8 @@ async function handleMessage(data: {
   const startTime = Date.now();
 
   try {
-    // Processa com o agente
-    const response = await processMessage(phone, text, name);
+    // Processa com o agente (passa instância para rastrear origem do contato)
+    const response = await processMessage(phone, text, name, instance);
 
     // Envia resposta via WhatsApp pela mesma instância que recebeu
     await evolutionService.sendText(instance, phone, response);

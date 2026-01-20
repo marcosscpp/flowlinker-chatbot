@@ -15,7 +15,7 @@
 import "dotenv/config";
 import { prisma } from "../src/database/client.js";
 import { env } from "../src/config/env.js";
-import { getAllInstances } from "../src/config/instances.js";
+import { getInstanceNames } from "../src/config/instances.js";
 
 interface EvolutionMessage {
   key: {
@@ -64,7 +64,9 @@ function extractPhone(remoteJid: string): string | null {
 /**
  * Extrai texto da mensagem
  */
-function extractMessageText(message: EvolutionMessage["message"]): string | null {
+function extractMessageText(
+  message: EvolutionMessage["message"]
+): string | null {
   if (!message) return null;
   return message.conversation || message.extendedTextMessage?.text || null;
 }
@@ -128,7 +130,10 @@ async function fetchMessages(
 /**
  * Sincroniza conversas de uma instância
  */
-async function syncInstance(instance: string, hoursBack: number): Promise<SyncResult> {
+async function syncInstance(
+  instance: string,
+  hoursBack: number
+): Promise<SyncResult> {
   const result: SyncResult = {
     instance,
     chatsScanned: 0,
@@ -159,7 +164,9 @@ async function syncInstance(instance: string, hoursBack: number): Promise<SyncRe
     if (!phone) continue;
 
     result.chatsScanned++;
-    process.stdout.write(`\r[${instance}] Processando ${result.chatsScanned}/${chats.length}: ${phone}...`);
+    process.stdout.write(
+      `\r[${instance}] Processando ${result.chatsScanned}/${chats.length}: ${phone}...`
+    );
 
     try {
       // Busca conversa no banco
@@ -180,19 +187,31 @@ async function syncInstance(instance: string, hoursBack: number): Promise<SyncRe
       result.messagesFound += evolutionMessages.length;
 
       // Mensagens atuais no banco
-      const currentMessages = (conversationLog.messages as Array<{ role: string; content: string; timestamp?: number }>) || [];
+      const currentMessages =
+        (conversationLog.messages as Array<{
+          role: string;
+          content: string;
+          timestamp?: number;
+        }>) || [];
       const messagesBefore = currentMessages.length;
 
       // Cria um Set de conteúdos existentes para comparação rápida
-      const existingContents = new Set(currentMessages.map(m => m.content.trim().toLowerCase()));
+      const existingContents = new Set(
+        currentMessages.map((m) => m.content.trim().toLowerCase())
+      );
 
       // Filtra mensagens novas do Evolution
-      const newMessages: Array<{ role: string; content: string; timestamp: number }> = [];
+      const newMessages: Array<{
+        role: string;
+        content: string;
+        timestamp: number;
+      }> = [];
 
       for (const msg of evolutionMessages) {
-        const timestamp = typeof msg.messageTimestamp === "string"
-          ? parseInt(msg.messageTimestamp) * 1000
-          : msg.messageTimestamp * 1000;
+        const timestamp =
+          typeof msg.messageTimestamp === "string"
+            ? parseInt(msg.messageTimestamp) * 1000
+            : msg.messageTimestamp * 1000;
 
         // Ignora mensagens muito antigas
         if (timestamp < cutoffTime.getTime()) continue;
@@ -249,7 +268,6 @@ async function syncInstance(instance: string, hoursBack: number): Promise<SyncRe
         messagesAfter: limitedMessages.length,
         added: newMessages.length,
       });
-
     } catch (error) {
       result.errors++;
     }
@@ -288,7 +306,7 @@ async function main() {
   console.log(`\nPeriodo: ultimas ${hours} horas`);
   console.log(`Instancia: ${instance || "todas"}\n`);
 
-  const instances = instance ? [instance] : getAllInstances();
+  const instances = instance ? [instance] : getInstanceNames();
   const allResults: SyncResult[] = [];
 
   for (const inst of instances) {
@@ -337,7 +355,9 @@ async function main() {
     if (result.details.length > 0) {
       console.log("\n  Detalhes das atualizacoes:");
       for (const detail of result.details) {
-        console.log(`    ${detail.phone}: +${detail.added} mensagens (${detail.messagesBefore} -> ${detail.messagesAfter})`);
+        console.log(
+          `    ${detail.phone}: +${detail.added} mensagens (${detail.messagesBefore} -> ${detail.messagesAfter})`
+        );
       }
     }
   }

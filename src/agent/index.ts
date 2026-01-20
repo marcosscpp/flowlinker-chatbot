@@ -68,7 +68,8 @@ async function loadConversationHistory(
  */
 async function saveConversationHistory(
   phone: string,
-  history: MessageHistory[]
+  history: MessageHistory[],
+  instance?: string
 ): Promise<void> {
   // Limita o historico a 20 mensagens para nao estourar contexto
   const limitedHistory = history.slice(-20);
@@ -80,10 +81,13 @@ async function saveConversationHistory(
       phone,
       messages: limitedHistory as unknown as Prisma.InputJsonValue,
       lastContactAt: now,
+      firstContactInstance: instance,
+      lastContactInstance: instance,
     } as any,
     update: {
       messages: limitedHistory as unknown as Prisma.InputJsonValue,
       lastContactAt: now,
+      lastContactInstance: instance,
     } as any,
   });
 }
@@ -105,7 +109,8 @@ function historyToMessages(history: MessageHistory[]): BaseMessage[] {
 export async function processMessage(
   phone: string,
   text: string,
-  name?: string
+  name?: string,
+  instance?: string
 ): Promise<string> {
   try {
     // Carrega historico
@@ -134,8 +139,8 @@ export async function processMessage(
     // Adiciona resposta ao historico
     history.push({ role: "assistant", content: response });
 
-    // Salva historico atualizado
-    await saveConversationHistory(phone, history);
+    // Salva historico atualizado (com instância de contato)
+    await saveConversationHistory(phone, history, instance);
 
     return response;
   } catch (error: any) {
@@ -182,7 +187,8 @@ export interface ProcessMessageDebugResult {
 export async function processMessageDebug(
   phone: string,
   text: string,
-  name?: string
+  name?: string,
+  instance?: string
 ): Promise<ProcessMessageDebugResult> {
   try {
     // Carrega historico
@@ -224,8 +230,8 @@ export async function processMessageDebug(
     // Adiciona resposta ao historico
     history.push({ role: "assistant", content: response });
 
-    // Salva historico atualizado
-    await saveConversationHistory(phone, history);
+    // Salva historico atualizado (com instância de contato)
+    await saveConversationHistory(phone, history, instance);
 
     return { response, toolCalls };
   } catch (error: any) {
