@@ -22,8 +22,10 @@
     "@langchain/langgraph": "^0.2.0",
     "@langchain/openai": "^0.3.0",
     "@prisma/client": "^5.22.0",
+    "@types/cors": "^2.8.19",
     "amqplib": "^0.10.0",
     "axios": "^1.7.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.0",
     "express": "^4.21.0",
     "googleapis": "^144.0.0",
@@ -34,6 +36,7 @@
     "@types/amqplib": "^0.10.0",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
+    "p-limit": "^7.2.0",
     "prisma": "^5.22.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"

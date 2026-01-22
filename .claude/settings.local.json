@@ -18,7 +18,11 @@
       "Bash(npm install:*)",
       "Bash(npx prisma generate:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "WebFetch(domain:render.com)"
+      "WebFetch(domain:render.com)",
+      "Bash(copy:*)",
+      "Bash(grep:*)",
+      "Bash(yarn install)",
+      "Bash(yarn build)"
     ]
   }
 }

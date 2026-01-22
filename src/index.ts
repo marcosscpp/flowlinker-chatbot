@@ -1,12 +1,26 @@
 import "dotenv/config";
 import express from "express";
+import cors from "cors";
 import { env } from "./config/env.js";
 import { webhookRouter } from "./webhook/evolution.js";
 import { reactivationRouter } from "./routes/reactivation.js";
+import { dashboardRouter } from "./routes/dashboard.js";
 import * as queueService from "./services/queue.js";
 import * as debounceService from "./services/debounce.js";
 
 const app = express();
+
+// CORS para o frontend
+app.use(
+  cors({
+    origin: env.isDev
+      ? ["flowlinker.com.br"]
+      : env.frontendUrl,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // Middleware para JSON
 app.use(express.json());
@@ -22,6 +36,9 @@ app.use("/webhook", webhookRouter);
 
 // Rotas de reativação (para cronjob)
 app.use("/reactivation", reactivationRouter);
+
+// Rotas do dashboard (para frontend)
+app.use("/api/dashboard", dashboardRouter);
 
 // Health check geral
 app.get("/health", async (_req, res) => {
@@ -54,6 +71,15 @@ app.get("/", (_req, res) => {
         send: "POST /reactivation/send - Apenas processa fila de envio",
         stats: "GET /reactivation/stats - Estatísticas",
         health: "GET /reactivation/health - Health check",
+      },
+      dashboard: {
+        kpis: "GET /api/dashboard/kpis - KPIs do dashboard",
+        funnel: "GET /api/dashboard/funnel - Funil de vendas",
+        leadsOverTime: "GET /api/dashboard/leads-over-time - Leads por período",
+        peakHours: "GET /api/dashboard/peak-hours - Horários de pico",
+        leads: "GET /api/dashboard/leads - Lista de leads paginada",
+        leadDetail: "GET /api/dashboard/leads/:id - Detalhes do lead com resumo",
+        regenerateSummary: "POST /api/dashboard/leads/:id/regenerate-summary - Regenera resumo",
       },
     },
   });

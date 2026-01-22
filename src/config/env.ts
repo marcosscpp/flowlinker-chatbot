@@ -36,4 +36,7 @@ export const env = {
 
   // Grupo de vendedores para transferência humana
   sellersGroupId: optionalEnv('SELLERS_GROUP_ID', ''),
+
+  // Frontend URL (para CORS)
+  frontendUrl: optionalEnv('FRONTEND_URL', 'http://localhost:5173'),
 };

@@ -63,6 +63,7 @@ model ConversationLog {
   discardReason      String?            // Motivo do descarte (se aplicável)
 
   reactivationQueue ReactivationQueue[]
+  summary           ConversationSummary?
 
   @@index([phone])
   @@index([lastContactAt])
@@ -111,4 +112,25 @@ enum MeetingStatus {
   COMPLETED
   CANCELLED
   NO_SHOW
+}
+
+// Cache de resumos de conversas gerados por IA
+model ConversationSummary {
+  id                String   @id @default(uuid())
+  conversationLogId String   @unique
+  conversationLog   ConversationLog @relation(fields: [conversationLogId], references: [id], onDelete: Cascade)
+
+  summary           String   @db.Text  // Resumo gerado pela IA
+  keyPoints         Json?              // Pontos-chave extraídos
+  sentiment         String?            // positivo/neutro/negativo
+
+  // Campos para invalidação de cache
+  messagesHash      String             // Hash SHA-256 das mensagens
+  messageCount      Int                // Quantidade de mensagens quando gerado
+
+  generatedAt       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([conversationLogId])
 }
