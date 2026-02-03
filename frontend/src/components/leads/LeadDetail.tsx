@@ -13,7 +13,9 @@ import {
 import { useLead, useRegenerateSummary } from "../../hooks/useDashboard";
 import { Card, CardHeader } from "../ui/Card";
 import { Badge, getStatusVariant, getSentimentVariant } from "../ui/Badge";
-import { Skeleton } from "../ui/Skeleton";
+import { SkeletonLeadDetail } from "../ui/Skeleton";
+import { ErrorState } from "../ui/ErrorState";
+import { useToast } from "../ui/Toast";
 
 const STATUS_LABELS: Record<string, string> = {
   ACTIVE: "Ativo",
@@ -29,30 +31,33 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function LeadDetail() {
   const { id } = useParams<{ id: string }>();
-  const { data, isLoading, error } = useLead(id || "");
+  const { data, isLoading, error, refetch } = useLead(id || "");
   const regenerateMutation = useRegenerateSummary();
+  const toast = useToast();
+
+  const handleRegenerate = () => {
+    if (!id) return;
+    regenerateMutation.mutate(id, {
+      onSuccess: () => {
+        toast.success("Resumo atualizado", "O resumo foi regenerado com sucesso.");
+      },
+      onError: () => {
+        toast.error("Erro ao regenerar", "Não foi possível atualizar o resumo. Tente novamente.");
+      },
+    });
+  };
 
   if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <Skeleton className="h-96" />
-          </div>
-          <div>
-            <Skeleton className="h-64" />
-          </div>
-        </div>
-      </div>
-    );
+    return <SkeletonLeadDetail />;
   }
 
   if (error || !data) {
     return (
-      <Card>
-        <p className="text-red-500">Erro ao carregar lead</p>
-      </Card>
+      <ErrorState
+        title="Erro ao carregar lead"
+        message="Não foi possível carregar os dados do lead. Verifique sua conexão e tente novamente."
+        onRetry={() => refetch()}
+      />
     );
   }
 
@@ -98,39 +103,89 @@ export function LeadDetail() {
                   Nenhuma mensagem registrada
                 </p>
               ) : (
-                lead.messages.map((msg, index) => (
-                  <div
-                    key={index}
-                    className={`flex gap-3 ${
-                      msg.role === "user" ? "" : "flex-row-reverse"
-                    }`}
-                  >
+                lead.messages.map((msg, index) => {
+                  // Formata timestamp se disponível
+                  let messageDate: string | null = null;
+                  if (msg.timestamp) {
+                    try {
+                      let date: Date;
+                      if (typeof msg.timestamp === "number") {
+                        // Se for timestamp em segundos, converte para milissegundos
+                        date = new Date(msg.timestamp > 1e12 ? msg.timestamp : msg.timestamp * 1000);
+                      } else if (typeof msg.timestamp === "string") {
+                        date = new Date(msg.timestamp);
+                      } else {
+                        date = new Date(msg.timestamp);
+                      }
+                      messageDate = format(date, "dd/MM/yyyy 'às' HH:mm", {
+                        locale: ptBR,
+                      });
+                    } catch (e) {
+                      // Ignora erros de parsing
+                    }
+                  } else {
+                    // Fallback: usa lastContactAt para estimar data da última mensagem
+                    // e calcula datas anteriores baseado na posição
+                    if (index === lead.messages.length - 1) {
+                      // Última mensagem usa lastContactAt
+                      messageDate = format(
+                        parseISO(lead.lastContactAt),
+                        "dd/MM/yyyy 'às' HH:mm",
+                        { locale: ptBR }
+                      );
+                    } else {
+                      // Mensagens anteriores: estima baseado na diferença
+                      const lastContact = new Date(lead.lastContactAt);
+                      const messagesAfter = lead.messages.length - 1 - index;
+                      // Assume ~2 minutos entre mensagens
+                      const estimatedDate = new Date(
+                        lastContact.getTime() - messagesAfter * 2 * 60 * 1000
+                      );
+                      messageDate = format(estimatedDate, "dd/MM/yyyy 'às' HH:mm", {
+                        locale: ptBR,
+                      });
+                    }
+                  }
+
+                  return (
                     <div
-                      className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${
-                        msg.role === "user"
-                          ? "bg-primary-500/10"
-                          : "bg-[var(--bg-tertiary)]"
+                      key={index}
+                      className={`flex gap-3 ${
+                        msg.role === "user" ? "" : "flex-row-reverse"
                       }`}
                     >
-                      {msg.role === "user" ? (
-                        <User className="w-4 h-4 text-primary-500" />
-                      ) : (
-                        <Bot className="w-4 h-4 text-[var(--text-secondary)]" />
-                      )}
+                      <div
+                        className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${
+                          msg.role === "user"
+                            ? "bg-primary-500/10"
+                            : "bg-[var(--bg-tertiary)]"
+                        }`}
+                      >
+                        {msg.role === "user" ? (
+                          <User className="w-4 h-4 text-primary-500" />
+                        ) : (
+                          <Bot className="w-4 h-4 text-[var(--text-secondary)]" />
+                        )}
+                      </div>
+                      <div
+                        className={`flex-1 p-4 rounded-2xl ${
+                          msg.role === "user"
+                            ? "bg-primary-500/10 text-[var(--text-primary)]"
+                            : "bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
+                        }`}
+                      >
+                        {messageDate && (
+                          <p className="text-xs text-[var(--text-tertiary)] mb-1.5">
+                            {messageDate}
+                          </p>
+                        )}
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                          {msg.content}
+                        </p>
+                      </div>
                     </div>
-                    <div
-                      className={`flex-1 p-4 rounded-2xl ${
-                        msg.role === "user"
-                          ? "bg-primary-500/10 text-[var(--text-primary)]"
-                          : "bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                        {msg.content}
-                      </p>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </Card>
@@ -144,7 +199,7 @@ export function LeadDetail() {
               title="Resumo com IA"
               action={
                 <button
-                  onClick={() => id && regenerateMutation.mutate(id)}
+                  onClick={handleRegenerate}
                   disabled={regenerateMutation.isPending}
                   className="p-2 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)] hover:border-primary-500/50 disabled:opacity-50 transition-all duration-200"
                   title="Regenerar resumo"
@@ -187,7 +242,7 @@ export function LeadDetail() {
                     {summary.sentiment}
                   </Badge>
                   <button
-                    onClick={() => id && regenerateMutation.mutate(id)}
+                    onClick={handleRegenerate}
                     disabled={regenerateMutation.isPending}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-500 bg-primary-500/10 rounded-lg hover:bg-primary-500/20 disabled:opacity-50 transition-all duration-200"
                   >

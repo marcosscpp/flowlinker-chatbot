@@ -1,6 +1,7 @@
 import { Bot } from "lucide-react";
 import { Card, CardHeader } from "../components/ui/Card";
-import { SkeletonCard, SkeletonChart } from "../components/ui/Skeleton";
+import { SkeletonKPIs, SkeletonChart } from "../components/ui/Skeleton";
+import { ErrorState } from "../components/ui/ErrorState";
 import { KPICards } from "../components/dashboard/KPICards";
 import { DateFilter, useDateFilter } from "../components/dashboard/DateFilter";
 import { FunnelChart } from "../components/charts/FunnelChart";
@@ -20,11 +21,11 @@ export function Dashboard() {
     ? { startDate: dateRange.startDate, endDate: dateRange.endDate }
     : undefined;
 
-  const { data: kpis, isLoading: loadingKPIs } = useKPIs(apiDateRange);
-  const { data: funnel, isLoading: loadingFunnel } = useFunnel(apiDateRange);
-  const { data: leadsOverTime, isLoading: loadingLeadsOverTime } =
+  const { data: kpis, isLoading: loadingKPIs, error: errorKPIs, refetch: refetchKPIs } = useKPIs(apiDateRange);
+  const { data: funnel, isLoading: loadingFunnel, error: errorFunnel, refetch: refetchFunnel } = useFunnel(apiDateRange);
+  const { data: leadsOverTime, isLoading: loadingLeadsOverTime, error: errorLeadsOverTime, refetch: refetchLeadsOverTime } =
     useLeadsOverTime(apiDateRange);
-  const { data: peakHours, isLoading: loadingPeakHours } = usePeakHours(apiDateRange);
+  const { data: peakHours, isLoading: loadingPeakHours, error: errorPeakHours, refetch: refetchPeakHours } = usePeakHours(apiDateRange);
 
   return (
     <div className="space-y-8">
@@ -60,11 +61,13 @@ export function Dashboard() {
 
       {/* KPIs */}
       {loadingKPIs ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
+        <SkeletonKPIs />
+      ) : errorKPIs ? (
+        <ErrorState
+          variant="compact"
+          message="Erro ao carregar KPIs"
+          onRetry={() => refetchKPIs()}
+        />
       ) : kpis ? (
         <KPICards data={kpis} />
       ) : null}
@@ -74,6 +77,12 @@ export function Dashboard() {
         {/* Funil */}
         {loadingFunnel ? (
           <SkeletonChart />
+        ) : errorFunnel ? (
+          <ErrorState
+            variant="compact"
+            message="Erro ao carregar funil"
+            onRetry={() => refetchFunnel()}
+          />
         ) : funnel ? (
           <Card>
             <CardHeader
@@ -87,6 +96,12 @@ export function Dashboard() {
         {/* Leads ao longo do tempo */}
         {loadingLeadsOverTime ? (
           <SkeletonChart />
+        ) : errorLeadsOverTime ? (
+          <ErrorState
+            variant="compact"
+            message="Erro ao carregar grafico de leads"
+            onRetry={() => refetchLeadsOverTime()}
+          />
         ) : leadsOverTime ? (
           <Card>
             <CardHeader
@@ -100,6 +115,13 @@ export function Dashboard() {
         {/* Horarios de pico */}
         {loadingPeakHours ? (
           <SkeletonChart />
+        ) : errorPeakHours ? (
+          <ErrorState
+            variant="compact"
+            message="Erro ao carregar horarios de pico"
+            onRetry={() => refetchPeakHours()}
+            className="lg:col-span-2"
+          />
         ) : peakHours ? (
           <Card className="lg:col-span-2">
             <CardHeader

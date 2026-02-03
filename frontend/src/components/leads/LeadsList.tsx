@@ -9,11 +9,13 @@ import {
   Calendar,
   MessageSquare,
   ExternalLink,
+  Users,
 } from "lucide-react";
 import { useLeads } from "../../hooks/useDashboard";
 import { Card } from "../ui/Card";
 import { Badge, getStatusVariant } from "../ui/Badge";
 import { SkeletonTable } from "../ui/Skeleton";
+import { ErrorState, EmptyState } from "../ui/ErrorState";
 
 const STATUS_LABELS: Record<string, string> = {
   ACTIVE: "Ativo",
@@ -41,7 +43,7 @@ export function LeadsList() {
   const [status, setStatus] = useState<string | undefined>();
   const [search, setSearch] = useState("");
 
-  const { data, isLoading, error } = useLeads(page, 20, status, search);
+  const { data, isLoading, error, refetch } = useLeads(page, 20, status, search);
 
   if (isLoading) {
     return <SkeletonTable />;
@@ -49,14 +51,78 @@ export function LeadsList() {
 
   if (error) {
     return (
-      <Card>
-        <p className="text-red-500">Erro ao carregar leads</p>
-      </Card>
+      <ErrorState
+        title="Erro ao carregar leads"
+        message="Não foi possível carregar a lista de leads. Verifique sua conexão e tente novamente."
+        onRetry={() => refetch()}
+      />
     );
   }
 
   if (!data) {
     return null;
+  }
+
+  const hasFilters = status || search;
+
+  if (data.data.length === 0) {
+    return (
+      <Card>
+        {/* Filtros */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
+            <input
+              type="text"
+              placeholder="Buscar por telefone..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+            />
+          </div>
+          <select
+            value={status || ""}
+            onChange={(e) => {
+              setStatus(e.target.value || undefined);
+              setPage(1);
+            }}
+            className="px-4 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+          >
+            <option value="">Todos os status</option>
+            {Object.entries(STATUS_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <EmptyState
+          icon={<Users className="w-8 h-8 text-[var(--text-tertiary)]" />}
+          title={hasFilters ? "Nenhum lead encontrado" : "Sem leads ainda"}
+          message={
+            hasFilters
+              ? "Tente ajustar os filtros de busca."
+              : "Os leads aparecerão aqui quando houver conversas no chatbot."
+          }
+          action={
+            hasFilters
+              ? {
+                  label: "Limpar filtros",
+                  onClick: () => {
+                    setSearch("");
+                    setStatus(undefined);
+                    setPage(1);
+                  },
+                }
+              : undefined
+          }
+        />
+      </Card>
+    );
   }
 
   return (
@@ -94,8 +160,8 @@ export function LeadsList() {
       </div>
 
       {/* Tabela */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
+      <div className="-mx-6 px-6 overflow-x-auto">
+        <table className="w-full min-w-[700px]">
           <thead>
             <tr className="text-left text-sm text-[var(--text-tertiary)] border-b border-[var(--border-color)]">
               <th className="pb-3 font-medium">Telefone</th>

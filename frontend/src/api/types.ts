@@ -73,6 +73,7 @@ export interface PaginatedLeads {
 export interface LeadMessage {
   role: string;
   content: string;
+  timestamp?: string | number;
 }
 
 export interface LeadMeeting {
