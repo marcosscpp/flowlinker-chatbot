@@ -10,6 +10,7 @@ import {
 import { transcribeAudio } from "../services/transcription.js";
 import { isValidInstance } from "../config/instances.js";
 import type { EvolutionWebhookPayload } from "../types/index.js";
+import { saveMessageToHistory, isBotDisabled } from "../services/message-history.js";
 
 export const webhookRouter = Router();
 
@@ -44,11 +45,13 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
     // Extrai texto para verificar comandos admin
     const rawText = extractMessageText(message)?.trim();
 
-    // Mensagens enviadas pelo admin (fromMe)
+    // Extrai telefone do destinatário/remetente
+    const phone = extractPhoneFromJid(key.remoteJid);
+
+    // Mensagens enviadas pelo próprio número (fromMe)
     if (key.fromMe) {
-      // Permite apenas comandos de controle do bot (. e ..)
+      // Comandos de controle do bot (. e ..)
       if (rawText === "." || rawText === "..") {
-        const phone = extractPhoneFromJid(key.remoteJid);
         console.log(
           `[Webhook] Comando admin "${rawText}" para conversa ${phone}@${instance}`
         );
@@ -61,6 +64,21 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
           messageId: key.id,
           timestamp: Date.now(),
         });
+        return res.sendStatus(200);
+      }
+
+      // Ignora mensagens de grupos
+      if (key.remoteJid.endsWith("@g.us")) {
+        return res.sendStatus(200);
+      }
+
+      // Salva mensagem enviada pelo atendente humano/bot no histórico
+      // Isso é útil quando o bot está desabilitado e um humano está conversando
+      if (rawText) {
+        console.log(
+          `[Webhook] Mensagem enviada (fromMe) para ${phone}@${instance}: "${rawText.substring(0, 50)}..."`
+        );
+        await saveMessageToHistory(phone, rawText, "assistant", instance);
       }
       return res.sendStatus(200);
     }
@@ -70,9 +88,6 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
       console.log("[Webhook] Mensagem de grupo ignorada");
       return res.sendStatus(200);
     }
-
-    // Extrai telefone
-    const phone = extractPhoneFromJid(key.remoteJid);
 
     // Tenta extrair texto da mensagem
     let text = extractMessageText(message);
@@ -127,6 +142,19 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
       `[Webhook] Mensagem recebida de ${phone}@${instance}: ${text.substring(0, 50)}...`
     );
 
+    // Verifica se o bot está desabilitado para este número
+    const disabled = await isBotDisabled(phone);
+
+    if (disabled) {
+      // Bot desabilitado - salva mensagem no histórico mas NÃO processa com IA
+      // Isso permite registrar a conversa quando um humano está atendendo
+      console.log(
+        `[Webhook] Bot desabilitado para ${phone}, salvando mensagem no histórico sem processar`
+      );
+      await saveMessageToHistory(phone, text, "user", instance);
+      return res.sendStatus(200);
+    }
+
     // Adiciona ao debounce (será processado após período de inatividade)
     debounceService.addMessage({
       instance,
@@ -141,6 +169,54 @@ webhookRouter.post("/messages-upsert", async (req: Request, res: Response) => {
     res.sendStatus(200);
   } catch (error) {
     console.error("[Webhook] Erro ao processar:", error);
+    res.sendStatus(500);
+  }
+});
+
+/**
+ * Webhook para mensagens enviadas via Evolution API
+ * Evento: SEND_MESSAGE
+ *
+ * Captura mensagens enviadas pelo bot/atendente para salvar no histórico
+ * Útil quando o bot está desabilitado e um humano está conversando
+ */
+webhookRouter.post("/send-message", async (req: Request, res: Response) => {
+  try {
+    const payload = req.body as EvolutionWebhookPayload;
+
+    // Valida payload
+    if (!payload?.data?.key) {
+      return res.sendStatus(200);
+    }
+
+    const instance = payload.instance;
+
+    // Valida se é uma instância conhecida
+    if (!isValidInstance(instance)) {
+      return res.sendStatus(200);
+    }
+
+    const { key, message } = payload.data;
+
+    // Ignora mensagens de grupos
+    if (key.remoteJid.endsWith("@g.us")) {
+      return res.sendStatus(200);
+    }
+
+    const phone = extractPhoneFromJid(key.remoteJid);
+    const text = extractMessageText(message)?.trim();
+
+    // Salva mensagem enviada no histórico
+    if (text) {
+      console.log(
+        `[Webhook] SEND_MESSAGE para ${phone}@${instance}: "${text.substring(0, 50)}..."`
+      );
+      await saveMessageToHistory(phone, text, "assistant", instance);
+    }
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error("[Webhook] Erro no SEND_MESSAGE:", error);
     res.sendStatus(500);
   }
 });
