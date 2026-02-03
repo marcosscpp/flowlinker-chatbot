@@ -14,6 +14,7 @@ const analyzerModel = new ChatOpenAI({
  * Estágios possíveis da conversa
  */
 export type ConversationStage =
+  | "empty" // Conversa vazia (lead iniciou mas não há mensagens)
   | "greeting" // Só saudou, não informou cidade
   | "city_collected" // Informou cidade, não informou segmento
   | "segment_collected" // Informou segmento, não escolheu dia
@@ -55,6 +56,7 @@ Hoje é {currentDate}. Use esta informação para verificar se datas mencionadas
 3. Gerar uma mensagem de reativação PERSONALIZADA (se aplicável)
 
 ## ESTÁGIOS POSSÍVEIS
+- empty: Conversa vazia (lead iniciou mas não há mensagens - tratado automaticamente)
 - greeting: Lead só saudou, não informou cidade ainda
 - city_collected: Informou cidade mas não o segmento (negócios/pessoal/político)
 - segment_collected: Informou segmento mas não escolheu dia para reunião
@@ -140,13 +142,38 @@ export async function analyzeConversation(
   const messages =
     (log.messages as Array<{ role: string; content: string }>) || [];
 
+  // Conversa vazia - lead iniciou contato mas não há histórico
+  // Envia mensagem de apresentação explicando sobre a Flowlinker
   if (messages.length === 0) {
+    // Verifica máximo de tentativas mesmo para conversas vazias
+    if (attemptNumber >= 3) {
+      return {
+        stage: "empty",
+        shouldReactivate: false,
+        reactivationMessage: null,
+        discardReason: "Máximo de tentativas de reativação atingido (3)",
+        summary: "Conversa vazia - limite de tentativas",
+      };
+    }
+
+    // Mensagens de apresentação variadas baseadas na tentativa
+    const emptyConversationMessages = [
+      // Tentativa 1 - Apresentação completa
+      `Oi! Vi que você demonstrou interesse na Flowlinker, nossa ferramenta de automação para redes sociais. Por estratégia, trabalhamos com vagas limitadas por cidade para garantir exclusividade e melhores resultados para cada cliente. Pode me informar sua cidade para eu verificar a disponibilidade na sua região?`,
+      // Tentativa 2 - Mais direto
+      `Oi! Ainda temos vagas disponíveis para a Flowlinker na maioria das regiões. Pode me informar sua cidade para eu verificar se ainda há disponibilidade por aí?`,
+      // Tentativa 3 - Última chance (não deve chegar aqui por causa do check acima, mas por segurança)
+      `Oi! Última tentativa de contato sobre a Flowlinker. Se tiver interesse em conhecer nossa ferramenta de automação, me informe sua cidade que verifico a disponibilidade.`,
+    ];
+
+    const messageIndex = Math.min(attemptNumber - 1, emptyConversationMessages.length - 1);
+
     return {
-      stage: "unknown",
-      shouldReactivate: false,
-      reactivationMessage: null,
-      discardReason: "Histórico de conversa vazio",
-      summary: "Sem mensagens",
+      stage: "empty",
+      shouldReactivate: true,
+      reactivationMessage: emptyConversationMessages[messageIndex],
+      discardReason: null,
+      summary: "Conversa vazia - enviando apresentação",
     };
   }
 
